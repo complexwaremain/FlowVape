@@ -30,7 +30,7 @@ end
 
 vape.Place = 8768229691
 if isfile('newvape/games/'..vape.Place..'.lua') then
-	loadstring(readfile('newvape/games/'..vape.Place..'.lua'), 'skywars')()
+	loadstring(readfile('newvape/CustomModules/'..vape.Place..'.lua'), 'skywars')()
 else
 	if not shared.VapeDeveloper then
 		local suc, res = pcall(function() 
