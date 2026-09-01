@@ -221,10 +221,38 @@ runcode(function()
     getfunctions = function()
         local Flamework = require(repstorage["rbxts_include"]["node_modules"]["@flamework"].core.out).Flamework
 		repeat task.wait() until Flamework.isInitialized
-        local KnitClient = debug.getupvalue(require(lplr.PlayerScripts.TS.knit).setup, 6)
+        
+        -- Safe Knit resolution to avoid indexing nil
+        local knitModule = require(lplr.PlayerScripts.TS.knit)
+        local KnitClient = nil
+        pcall(function()
+            for i = 1, 15 do
+                local upv = debug.getupvalue(knitModule.setup, i)
+                if type(upv) == "table" and (rawget(upv, "Controllers") or rawget(upv, "GetController")) then
+                    KnitClient = upv
+                    break
+                end
+            end
+        end)
+        if not KnitClient then
+            pcall(function()
+                KnitClient = debug.getupvalue(knitModule.setup, 6)
+            end)
+        end
+
+        local controllers = (type(KnitClient) == "table" and rawget(KnitClient, "Controllers")) or (type(KnitClient) == "table" and KnitClient) or {}
+        local sprintController = (controllers and controllers.SprintController) or {sprinting = false, startSprinting = function() end, stopSprinting = function() end}
+        local queueController = (controllers and controllers.QueueController) or {joinQueue = function() return false end, leaveQueue = function() end}
+
         local Client = require(repstorage.TS.remotes).default.Client
         local OldClientGet = getmetatable(Client).Get
 		local OldClientWaitFor = getmetatable(Client).WaitFor
+
+        local queueMeta = {}
+        pcall(function()
+            queueMeta = require(repstorage.TS.game["queue-meta"]).QueueMeta
+        end)
+
         bedwars = {
 			BedwarsKits = require(repstorage.TS.games.bedwars.kit["bedwars-kit-shop"]).BedwarsKitShop,
             ClientHandler = Client,
@@ -232,9 +260,10 @@ runcode(function()
 			EmoteMeta = require(repstorage.TS.locker.emote["emote-meta"]).EmoteMeta,
 			QueryUtil = require(repstorage["rbxts_include"]["node_modules"]["@easy-games"]["game-core"].out).GameQueryUtil,
 			KitMeta = require(repstorage.TS.games.bedwars.kit["bedwars-kit-meta"]).BedwarsKitMeta,
-            sprintTable = KnitClient.Controllers.SprintController,
+			LobbyClientEvents = queueController,
+            sprintTable = sprintController,
 			WeldTable = require(repstorage.TS.util["weld-util"]).WeldUtil,
-			QueueMeta = require(repstorage.TS.game["queue-meta"]).QueueMeta,
+			QueueMeta = queueMeta,
 			getEntityTable = require(repstorage.TS.entity["entity-util"]).EntityUtil,
         }
 		if not shared.vapebypassed then
@@ -322,8 +351,14 @@ Sprint = GuiLibrary["ObjectsThatCanBeSaved"]["CombatWindow"]["Api"].CreateOption
 			spawn(function()
 				repeat
 					task.wait()
-					if bedwars["sprintTable"].sprinting == false then
-						getmetatable(bedwars["sprintTable"])["startSprinting"](bedwars["sprintTable"])
+					if bedwars["sprintTable"] and bedwars["sprintTable"].sprinting == false then
+						pcall(function()
+							if getmetatable(bedwars["sprintTable"]) and getmetatable(bedwars["sprintTable"])["startSprinting"] then
+								getmetatable(bedwars["sprintTable"])["startSprinting"](bedwars["sprintTable"])
+							elseif bedwars["sprintTable"].startSprinting then
+								bedwars["sprintTable"]:startSprinting()
+							end
+						end)
 					end
 				until Sprint["Enabled"] == false
 			end)
@@ -452,10 +487,10 @@ JoinQueue = GuiLibrary["ObjectsThatCanBeSaved"]["BlatantWindow"]["Api"].CreateOp
 					end
 					if JoinQueue["Enabled"] and JoinQueueTypes["Value"] ~= "" then
 						if bedwars["ClientStoreHandler"]:getState().Party.queueState > 0 then
-							bedwars["LobbyClientEvents"]:leaveQueue()
+							pcall(function() bedwars["LobbyClientEvents"]:leaveQueue() end)
 						end
-						if bedwars["ClientStoreHandler"]:getState().Party.leader.userId == lplr.UserId and bedwars["LobbyClientEvents"]:joinQueue(findfrom(JoinQueueTypes["Value"])) then
-							bedwars["LobbyClientEvents"]:leaveQueue()
+						if bedwars["ClientStoreHandler"]:getState().Party.leader.userId == lplr.UserId and pcall(function() return bedwars["LobbyClientEvents"]:joinQueue(findfrom(JoinQueueTypes["Value"])) end) then
+							pcall(function() bedwars["LobbyClientEvents"]:leaveQueue() end)
 						end
 						repeat task.wait() until bedwars["ClientStoreHandler"]:getState().Party.queueState == 3 or JoinQueue["Enabled"] == false
 						for i = 1, 10 do
@@ -465,7 +500,7 @@ JoinQueue = GuiLibrary["ObjectsThatCanBeSaved"]["BlatantWindow"]["Api"].CreateOp
 							task.wait(1)
 						end
 						if bedwars["ClientStoreHandler"]:getState().Party.queueState > 0 then
-							bedwars["LobbyClientEvents"]:leaveQueue()
+							pcall(function() bedwars["LobbyClientEvents"]:leaveQueue() end)
 						end
 					end
 				until JoinQueue["Enabled"] == false
@@ -474,7 +509,7 @@ JoinQueue = GuiLibrary["ObjectsThatCanBeSaved"]["BlatantWindow"]["Api"].CreateOp
 			firstqueue = false
 			shared.vapeteammembers = nil
 			if bedwars["ClientStoreHandler"]:getState().Party.queueState > 0 then
-				bedwars["LobbyClientEvents"]:leaveQueue()
+				pcall(function() bedwars["LobbyClientEvents"]:leaveQueue() end)
 			end
 		end
 	end
