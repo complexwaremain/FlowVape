@@ -10,7 +10,7 @@ local function vapeGithubRequest(scripturl)
 end
 
 shared.CustomSaveVape = 6872274481
-if isfile("vape/CustomModules/6872274481.lua") then
+if isfile("vape/games/6872274481.lua") then
 	loadstring(readfile("vape/games/6872274481.lua"))()
 else
 	local publicrepo = vapeGithubRequest("CustomModules/6872274481.lua")
