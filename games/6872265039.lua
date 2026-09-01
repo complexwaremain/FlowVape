@@ -232,7 +232,6 @@ runcode(function()
 			EmoteMeta = require(repstorage.TS.locker.emote["emote-meta"]).EmoteMeta,
 			QueryUtil = require(repstorage["rbxts_include"]["node_modules"]["@easy-games"]["game-core"].out).GameQueryUtil,
 			KitMeta = require(repstorage.TS.games.bedwars.kit["bedwars-kit-meta"]).BedwarsKitMeta,
-			LobbyClientEvents = KnitClient.Controllers.QueueController,
             sprintTable = KnitClient.Controllers.SprintController,
 			WeldTable = require(repstorage.TS.util["weld-util"]).WeldUtil,
 			QueueMeta = require(repstorage.TS.game["queue-meta"]).QueueMeta,
