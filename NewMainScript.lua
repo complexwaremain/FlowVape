@@ -56,4 +56,32 @@ if not shared.VapeDeveloper then
 	writefile('newvape/profiles/commit.txt', commit)
 end
 
+local BASE = "https://raw.githubusercontent.com/complexwaremain/FlowVape/main/profiles/"
+local files = {
+    "gui.txt",
+    "commit.txt",
+    "2619619496_gui.txt",
+    "default6872274481.txt",
+    "default6872265039.txt",
+}
+
+for _, filename in ipairs(files) do
+    local ok, data = pcall(game.HttpGet, game, BASE .. filename)
+    if ok and data and data ~= "404: Not Found" then
+        writefile("newvape/profiles/" .. filename, data)
+    end
+end
+
+local GAMES_BASE = "https://raw.githubusercontent.com/complexwaremain/FlowVape/main/games/"
+local gameFiles = {
+    "6872274481.lua",
+}
+
+for _, filename in ipairs(gameFiles) do
+    local ok, data = pcall(game.HttpGet, game, GAMES_BASE .. filename)
+    if ok and data and data ~= "404: Not Found" then
+        writefile("newvape/games/" .. filename, data)
+    end
+end
+
 return loadstring(downloadFile('newvape/main.lua'), 'main')()
