@@ -63,6 +63,10 @@ local files = {
     "2619619496_gui.txt",
     "default6872274481.txt",
     "default6872265039.txt",
+	"Legit6872265039.txt",
+    "Legit6872274481.txt",
+	"Blatant6872274481.txt",
+    "Blatant6872265039.txt",
 }
 
 for _, filename in ipairs(files) do
