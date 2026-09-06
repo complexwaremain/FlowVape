@@ -10278,6 +10278,126 @@ run(function()
 	})
 end)
 
+
+run(function()
+	local NightmareEmote
+	local effect
+	local track
+	local sound
+	local connections = {}
+	local playing = false
+
+	local function clearConnections()
+		for _, connection in connections do
+			pcall(function() connection:Disconnect() end)
+		end
+		table.clear(connections)
+	end
+
+	local function stopEmote()
+		playing = false
+		clearConnections()
+		if track then
+			pcall(function() track:Stop(0.25) end)
+			track = nil
+		end
+		if sound then
+			pcall(function() sound:Destroy() end)
+			sound = nil
+		end
+		if effect then
+			pcall(function() effect:Destroy() end)
+			effect = nil
+		end
+	end
+
+	local function playEmote()
+		stopEmote()
+
+		if not entitylib.isAlive then
+			notif('FlowVape', 'You have to be alive to play an emote.', 3)
+			return
+		end
+
+		local character = entitylib.character.Character
+		local humanoid = character and character:FindFirstChildOfClass('Humanoid')
+		local pivot = character and (character:FindFirstChild('LowerTorso') or entitylib.character.RootPart)
+		if not (character and humanoid and pivot) then return end
+
+		local template = replicatedStorage:FindFirstChild('Assets')
+		template = template and template:FindFirstChild('Effects')
+		template = template and template:FindFirstChild('NightmareEmote')
+		if not template then
+			notif('FlowVape', 'This place has no NightmareEmote effect to play.', 5)
+			return
+		end
+
+		playing = true
+
+		effect = template:Clone()
+		for _, d in effect:GetDescendants() do
+			if d:IsA('BasePart') then
+				d.CanCollide = false
+				d.CanQuery = false
+				d.Anchored = true
+			end
+		end
+		effect.Parent = workspace
+		pcall(function() effect:PivotTo(pivot.CFrame + Vector3.new(0, -2, 0)) end)
+
+		pcall(function()
+			sound = Instance.new('Sound')
+			sound.Name = 'FlowVapeNightmareEmote'
+			sound.SoundId = 'rbxassetid://9188182911'
+			sound.Looped = true
+			sound.Volume = 0.5
+			sound.Parent = pivot
+			sound:Play()
+		end)
+
+		local animator = humanoid:FindFirstChildOfClass('Animator')
+		if animator then
+			pcall(function()
+				local animation = Instance.new('Animation')
+				animation.AnimationId = 'rbxassetid://9191822700'
+				track = animator:LoadAnimation(animation)
+				track.Looped = true
+				track.Priority = Enum.AnimationPriority.Action
+				track:Play(0.2)
+			end)
+		end
+
+		connections[#connections + 1] = humanoid:GetPropertyChangedSignal('MoveDirection'):Connect(function()
+			if playing and humanoid.MoveDirection.Magnitude > 0 then
+				stopEmote()
+			end
+		end)
+		connections[#connections + 1] = humanoid.Died:Connect(stopEmote)
+		connections[#connections + 1] = humanoid.Jumping:Connect(function(active)
+			if active then stopEmote() end
+		end)
+		connections[#connections + 1] = character.AncestryChanged:Connect(function(_, parent)
+			if not parent then stopEmote() end
+		end)
+	end
+
+	NightmareEmote = vape.Categories.Utility:CreateModule({
+		Name = 'NightmareEmote',
+		Tooltip = 'Plays the Nightmare emote on your client. Move to stop.',
+		Function = function(callback)
+			if not callback then return end
+			playEmote()
+			task.defer(function()
+				if NightmareEmote.Enabled then
+					NightmareEmote:Toggle()
+				end
+			end)
+		end,
+	})
+
+	vape:Clean(function() stopEmote() end)
+end)
+
 run(function()
     local SkinChanger
     local Players = game:GetService("Players")
@@ -11149,121 +11269,3 @@ run(function()
     vape:Clean(function() stopSkinChanger() end)
 end)
 
-run(function()
-	local NightmareEmote
-	local effect
-	local track
-	local sound
-	local connections = {}
-	local playing = false
-
-	local function clearConnections()
-		for _, connection in connections do
-			pcall(function() connection:Disconnect() end)
-		end
-		table.clear(connections)
-	end
-
-	local function stopEmote()
-		playing = false
-		clearConnections()
-		if track then
-			pcall(function() track:Stop(0.25) end)
-			track = nil
-		end
-		if sound then
-			pcall(function() sound:Destroy() end)
-			sound = nil
-		end
-		if effect then
-			pcall(function() effect:Destroy() end)
-			effect = nil
-		end
-	end
-
-	local function playEmote()
-		stopEmote()
-
-		if not entitylib.isAlive then
-			notif('FlowVape', 'You have to be alive to play an emote.', 3)
-			return
-		end
-
-		local character = entitylib.character.Character
-		local humanoid = character and character:FindFirstChildOfClass('Humanoid')
-		local pivot = character and (character:FindFirstChild('LowerTorso') or entitylib.character.RootPart)
-		if not (character and humanoid and pivot) then return end
-
-		local template = replicatedStorage:FindFirstChild('Assets')
-		template = template and template:FindFirstChild('Effects')
-		template = template and template:FindFirstChild('NightmareEmote')
-		if not template then
-			notif('FlowVape', 'This place has no NightmareEmote effect to play.', 5)
-			return
-		end
-
-		playing = true
-
-		effect = template:Clone()
-		for _, d in effect:GetDescendants() do
-			if d:IsA('BasePart') then
-				d.CanCollide = false
-				d.CanQuery = false
-				d.Anchored = true
-			end
-		end
-		effect.Parent = workspace
-		pcall(function() effect:PivotTo(pivot.CFrame + Vector3.new(0, -2, 0)) end)
-
-		pcall(function()
-			sound = Instance.new('Sound')
-			sound.Name = 'FlowVapeNightmareEmote'
-			sound.SoundId = 'rbxassetid://9188182911'
-			sound.Looped = true
-			sound.Volume = 0.5
-			sound.Parent = pivot
-			sound:Play()
-		end)
-
-		local animator = humanoid:FindFirstChildOfClass('Animator')
-		if animator then
-			pcall(function()
-				local animation = Instance.new('Animation')
-				animation.AnimationId = 'rbxassetid://9191822700'
-				track = animator:LoadAnimation(animation)
-				track.Looped = true
-				track.Priority = Enum.AnimationPriority.Action
-				track:Play(0.2)
-			end)
-		end
-
-		connections[#connections + 1] = humanoid:GetPropertyChangedSignal('MoveDirection'):Connect(function()
-			if playing and humanoid.MoveDirection.Magnitude > 0 then
-				stopEmote()
-			end
-		end)
-		connections[#connections + 1] = humanoid.Died:Connect(stopEmote)
-		connections[#connections + 1] = humanoid.Jumping:Connect(function(active)
-			if active then stopEmote() end
-		end)
-		connections[#connections + 1] = character.AncestryChanged:Connect(function(_, parent)
-			if not parent then stopEmote() end
-		end)
-	end
-
-	NightmareEmote = vape.Categories.Utility:CreateModule({
-		Name = 'NightmareEmote',
-		Tooltip = 'Plays the Nightmare emote on your client. Move to stop.',
-		Function = function(callback)
-			if not callback then return end
-			playEmote()
-			task.defer(function()
-				if NightmareEmote.Enabled then
-					NightmareEmote:Toggle()
-				end
-			end)
-		end,
-	})
-
-	vape:Clean(function() stopEmote() end)
-end)
