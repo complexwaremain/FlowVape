@@ -11841,122 +11841,29 @@ runFunction(function()
 	end)
 end
 
+run(function()
+    local InfiniteJump
 
-	runFunction(function()
-		local DinoExploit = {Enabled = false}
-		local DinoExploitSpeed = {Enabled = false}
-		local realDino = tick()
-		local canDashNext = tick()
-
-		table.insert(vapeConnections, vapeEvents.AttributeChanged.Event:Connect(function(attribute)
-			if attribute == 'grounded' then
-				if lplr.Character:GetAttribute('grounded') then
-					realDino = tick()
-				end
-			end
-		end))
-		table.insert(vapeConnections, vapeEvents.abilityUsed.Event:Connect(function(character, ability)
-			if character == lplr.Character and ability == 'dino_charge' then
-				bedwarsStore.dinoTick = tick() + 60
-				canDashNext = tick() + 60
-			end
-		end))
-		table.insert(vapeConnections, vapeEvents.StopDinoCharging.Event:Connect(function(stopTable)
-			if stopTable.player == lplr then
-				bedwarsStore.dinoTick = tick()
-				noSpeed = true
-				task.delay(0.5, function()
-					noSpeed = false
-				end)
-			end
-		end))
-	
-		local notified = false
-		DinoExploit = GuiLibrary.ObjectsThatCanBeSaved.BlatantWindow.Api.CreateOptionsButton({
-			Name = 'DinoExploit',
-			Function = function(callback)
-				if callback then
-					task.spawn(function()
-						if canDashNext <= tick() then
-							if bedwarsStore.equippedKit == 'dino_tamer' then
-								useAbility('dino_charge')
-							end
-						elseif not notified then
-							notified = true
-							warningNotification('DinoExploit', 'Your ability is currently on cooldown', canDashNext - tick())
-							task.delay(canDashNext - tick(), function()
-								notified = false
-							end)
-						end
-						DinoExploit.ToggleButton(false)
-					end)
-				end
-			end
-		})
-		DinoExploitSpeed = DinoExploit.CreateSlider({
-			Name = 'Speed',
-			Min = 0,
-			Max = 60,
-			Default = 20,
-			Function = function(val)
-				bedwarsStore.dinoSpeed = val
-			end
-		})
-	end)
-
-		runFunction(function()
-		local night = {Enabled = false}
-		night = GuiLibrary.ObjectsThatCanBeSaved.RenderWindow.Api.CreateOptionsButton({
-			Name = 'Night',
-			Function = function(callback)
-				if callback then
-					lightingService.TimeOfDay = '00:00:00'
-				else
-					lightingService.TimeOfDay = '13:00:00'
-				end
-			end
-		})
-	end)
-
-	runFunction(function()
-		local InfiniteJump = {Enabled = false}
-		local InfiniteJumpHold = {Enabled = false}
-
-		InfiniteJump = GuiLibrary.ObjectsThatCanBeSaved.BlatantWindow.Api.CreateOptionsButton({
-			Name = 'InfiniteJump',
-			HoverText = 'Jump without touching ground (just like how complex got charged without touching those kids)',
-			Function = function(callback)
-				if callback then
-					local held = false
-					table.insert(InfiniteJump.Connections, inputService.InputBegan:Connect(function(input)
-						if input.KeyCode == Enum.KeyCode.Space and not inputService:GetFocusedTextBox() then
-							held = true
-							if entityLibrary.isAlive then
-								if InfiniteJumpHold.Enabled then
-									repeat
-										entityLibrary.character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-										task.wait()
-									until not held or not InfiniteJump.Enabled or not InfiniteJumpHold.Enabled or inputService:GetFocusedTextBox()
-								else
-									entityLibrary.character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-								end
-							end
-						end
-					end))
-					table.insert(InfiniteJump.Connections, inputService.InputEnded:Connect(function(input)
-						if input.KeyCode == Enum.KeyCode.Space and not inputService:GetFocusedTextBox() then
-							held = false
-						end
-					end))
-				end
-			end
-		})
-		InfiniteJumpHold = InfiniteJump.CreateToggle({
-			Name = 'Hold',
-			HoverText = 'Hold down space to jump',
-			Function = blankFunction
-		})
-	end)
+    InfiniteJump = vape.Categories.Blatant:CreateModule({
+        Name = 'InfiniteJump',
+        Tooltip = 'Jump infinitely mid-air.',
+        Function = function(enabled)
+            if enabled then
+                InfiniteJump:Clean(inputService.JumpRequest:Connect(function()
+                    if not entitylib.isAlive then return end
+                    local hum = entitylib.character.Humanoid
+                    if not hum then return end
+                    local state = hum:GetState()
+                    if state == Enum.HumanoidStateType.Freefall
+                    or state == Enum.HumanoidStateType.Jumping
+                    or state == Enum.HumanoidStateType.FallingDown then
+                        hum:ChangeState(Enum.HumanoidStateType.Jumping)
+                    end
+                end))
+            end
+        end,
+    })
+end)
 
 	run(function()
 	local NightmareEmote
