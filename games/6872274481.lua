@@ -2111,15 +2111,15 @@ run(function()
 	local Particles, Boxes = {}, {}
 	local anims, AnimDelay, AnimTween, armC0 = vape.Libraries.auraanims, tick()
 	local AttackRemote = {FireServer = function() end}
-task.spawn(function()
-    repeat task.wait() until remotes.AttackEntity and remotes.AttackEntity ~= ''
-    local suc, res = pcall(function()
-        return bedwars.Client:Get(remotes.AttackEntity).instance
-    end)
-    if suc and res then
-        AttackRemote = res
-    end
-end)
+	task.spawn(function()
+		repeat task.wait() until remotes.AttackEntity and remotes.AttackEntity ~= ''
+		local suc, res = pcall(function()
+			return bedwars.Client:Get(remotes.AttackEntity).instance
+		end)
+		if suc and res then
+			AttackRemote = res
+		end
+	end)
 
 	local function getAttackData()
 		if Mouse.Enabled then
@@ -2828,38 +2828,136 @@ end)
 	
 run(function()
 	local NoFall
-	local groundHit = nil
-	local oldFireServer = nil
+	local savedUpvalue = nil
+	local knitStart = nil
+	local disabledConnections = {}
+	local hookedFunctions = {}
 
-	task.spawn(function()
-		repeat task.wait() until remotes.GroundHit and remotes.GroundHit ~= ''
-		local suc, res = pcall(function()
-			return bedwars.Client:Get(remotes.GroundHit).instance
+	local function findKnitStart()
+		pcall(function()
+			for name, controller in Knit.Controllers do
+				if type(name) == 'string' and (name:lower():find('fall') or name:lower():find('falldamage')) then
+					if controller.KnitStart then
+						knitStart = controller.KnitStart
+						break
+					end
+				end
+			end
 		end)
-		if suc and res then
-			groundHit = res
+		if not knitStart then
+			pcall(function()
+				local mod = require(lplr.PlayerScripts.TS.controllers.game.combat['fall-damage-controller'])
+				knitStart = mod and (mod.KnitStart or mod.default and mod.default.KnitStart)
+			end)
 		end
-	end)
+	end
+
+	local function nukeUpvalues()
+		if not knitStart then return end
+		pcall(function()
+			local i = 1
+			while true do
+				local name, val = debug.getupvalue(knitStart, i)
+				if name == nil then break end
+				if type(val) == 'function' then
+					if not savedUpvalue then
+						savedUpvalue = {index = i, value = val}
+					end
+					debug.setupvalue(knitStart, i, function() end)
+				end
+				i += 1
+			end
+		end)
+	end
+
+	local function nukeRemote()
+		local oldGet = bedwars.Client.Get
+		table.insert(hookedFunctions, {obj = bedwars.Client, key = 'Get', value = oldGet})
+		bedwars.Client.Get = function(self, remoteName)
+			local result = oldGet(self, remoteName)
+			if remoteName == remotes.GroundHit then
+				return {
+					instance = result and result.instance,
+					SendToServer = function() end,
+					FireServer = function() end,
+				}
+			end
+			return result
+		end
+	end
+
+	local function nukeConnections()
+		if not getconnections then return end
+		pcall(function()
+			local hum = entitylib.isAlive and entitylib.character and entitylib.character.Humanoid
+			if not hum then return end
+			for _, signal in {hum.HealthChanged, hum.Touched} do
+				for _, conn in getconnections(signal) do
+					local ok, src = pcall(function() return tostring(conn.Function) end)
+					if ok and src and (src:lower():find('fall') or src:lower():find('damage')) then
+						conn:Disable()
+						table.insert(disabledConnections, conn)
+					end
+				end
+			end
+		end)
+	end
+
+	local function restoreAll()
+		pcall(function()
+			if savedUpvalue and knitStart then
+				debug.setupvalue(knitStart, savedUpvalue.index, savedUpvalue.value)
+				savedUpvalue = nil
+			end
+		end)
+		for _, hooked in hookedFunctions do
+			pcall(function() hooked.obj[hooked.key] = hooked.value end)
+		end
+		table.clear(hookedFunctions)
+		for _, conn in disabledConnections do
+			pcall(function() conn:Enable() end)
+		end
+		table.clear(disabledConnections)
+	end
+
+	task.defer(findKnitStart)
 
 	NoFall = vape.Categories.Blatant:CreateModule({
 		Name = 'NoFall',
-		Function = function(callback)
-			if callback then
+		Tooltip = 'Removes fall damage completely.',
+		Function = function(enabled)
+			if enabled then
+				if not knitStart then findKnitStart() end
+				nukeUpvalues()
+				nukeRemote()
+				nukeConnections()
+
 				NoFall:Clean(runService.Heartbeat:Connect(function()
 					if not entitylib.isAlive then return end
-					if groundHit and not oldFireServer then
-						oldFireServer = groundHit.FireServer
-						groundHit.FireServer = function() end
+					local root = entitylib.character and entitylib.character.RootPart
+					if not root then return end
+					if root.AssemblyLinearVelocity.Y < -85 then
+						root.AssemblyLinearVelocity = Vector3.new(
+							root.AssemblyLinearVelocity.X,
+							-85,
+							root.AssemblyLinearVelocity.Z
+						)
 					end
 				end))
+
+				NoFall:Clean(entitylib.Events.LocalAdded:Connect(function()
+					task.delay(0.2, function()
+						if NoFall.Enabled then
+							table.clear(disabledConnections)
+							nukeUpvalues()
+							nukeConnections()
+						end
+					end)
+				end))
 			else
-				if groundHit and oldFireServer then
-					groundHit.FireServer = oldFireServer
-					oldFireServer = nil
-				end
+				restoreAll()
 			end
 		end,
-		Tooltip = 'Prevents taking fall damage.'
 	})
 end)
 	
@@ -4486,6 +4584,50 @@ run(function()
 end)
 	
 run(function()
+	local AutoPlay
+	local Random
+	
+	local function isEveryoneDead()
+		return #bedwars.Store:getState().Party.members <= 0
+	end
+	
+	local function joinQueue()
+		if not bedwars.Store:getState().Game.customMatch and bedwars.Store:getState().Party.leader.userId == lplr.UserId and bedwars.Store:getState().Party.queueState == 0 then
+			if Random.Enabled then
+				local listofmodes = {}
+				for i, v in bedwars.QueueMeta do
+					if not v.disabled and not v.voiceChatOnly and not v.rankCategory then 
+						table.insert(listofmodes, i) 
+					end
+				end
+				bedwars.QueueController:joinQueue(listofmodes[math.random(1, #listofmodes)])
+			else
+				bedwars.QueueController:joinQueue(store.queueType)
+			end
+		end
+	end
+	
+	AutoPlay = vape.Categories.Utility:CreateModule({
+		Name = 'AutoPlay',
+		Function = function(callback)
+			if callback then
+				AutoPlay:Clean(vapeEvents.EntityDeathEvent.Event:Connect(function(deathTable)
+					if deathTable.finalKill and deathTable.entityInstance == lplr.Character and isEveryoneDead() and store.matchState ~= 2 then
+						joinQueue()
+					end
+				end))
+				AutoPlay:Clean(vapeEvents.MatchEndEvent.Event:Connect(joinQueue))
+			end
+		end,
+		Tooltip = 'Automatically queues after the match ends.'
+	})
+	Random = AutoPlay:CreateToggle({
+		Name = 'Random',
+		Tooltip = 'Chooses a random mode'
+	})
+end)
+	
+run(function()
 	local shooting, old = false
 	
 	local function getCrossbows()
@@ -5030,6 +5172,178 @@ run(function()
 		end,
 		Tooltip = 'Lets you buy things like armor early.'
 	})
+end)
+	
+run(function()
+	local StaffDetector
+	local Mode
+	local Clans
+	local Party
+	local Profile
+	local Users
+	local blacklistedclans = {'gg', 'gg2', 'DV', 'DV2'}
+	local blacklisteduserids = {1502104539, 3826146717, 4531785383, 1049767300, 4926350670, 653085195, 184655415, 2752307430, 5087196317, 5744061325, 1536265275}
+	local joined = {}
+	
+	local function getRole(plr, id)
+		local suc, res = pcall(function()
+			return plr:GetRankInGroup(id)
+		end)
+		if not suc then
+			notif('StaffDetector', res, 30, 'alert')
+		end
+		return suc and res or 0
+	end
+	
+	local function staffFunction(plr, checktype)
+		if not vape.Loaded then
+			repeat task.wait() until vape.Loaded
+		end
+	
+		notif('StaffDetector', 'Staff Detected ('..checktype..'): '..plr.Name..' ('..plr.UserId..')', 60, 'alert')
+		whitelist.customtags[plr.Name] = {{text = 'GAME STAFF', color = Color3.new(1, 0, 0)}}
+	
+		if Party.Enabled and not checktype:find('clan') then
+			bedwars.PartyController:leaveParty()
+		end
+	
+		if Mode.Value == 'Uninject' then
+			task.spawn(function()
+				vape:Uninject()
+			end)
+			game:GetService('StarterGui'):SetCore('SendNotification', {
+				Title = 'StaffDetector',
+				Text = 'Staff Detected ('..checktype..')\n'..plr.Name..' ('..plr.UserId..')',
+				Duration = 60,
+			})
+		elseif Mode.Value == 'Requeue' then
+			bedwars.QueueController:joinQueue(store.queueType)
+		elseif Mode.Value == 'Profile' then
+			vape.Save = function() end
+			if vape.Profile ~= Profile.Value then
+				vape:Load(true, Profile.Value)
+			end
+		elseif Mode.Value == 'AutoConfig' then
+			local safe = {'AutoClicker', 'Reach', 'Sprint', 'HitFix', 'StaffDetector'}
+			vape.Save = function() end
+			for i, v in vape.Modules do
+				if not (table.find(safe, i) or v.Category == 'Render') then
+					if v.Enabled then
+						v:Toggle()
+					end
+					v:SetBind('')
+				end
+			end
+		end
+	end
+	
+	local function checkFriends(list)
+		for _, v in list do
+			if joined[v] then
+				return joined[v]
+			end
+		end
+		return nil
+	end
+	
+	local function checkJoin(plr, connection)
+		if not plr:GetAttribute('Team') and plr:GetAttribute('Spectator') and not bedwars.Store:getState().Game.customMatch then
+			connection:Disconnect()
+			local tab, pages = {}, playersService:GetFriendsAsync(plr.UserId)
+			for _ = 1, 4 do
+				for _, v in pages:GetCurrentPage() do
+					table.insert(tab, v.Id)
+				end
+				if pages.IsFinished then break end
+				pages:AdvanceToNextPageAsync()
+			end
+	
+			local friend = checkFriends(tab)
+			if not friend then
+				staffFunction(plr, 'impossible_join')
+				return true
+			else
+				notif('StaffDetector', string.format('Spectator %s joined from %s', plr.Name, friend), 20, 'warning')
+			end
+		end
+	end
+	
+	local function playerAdded(plr)
+		joined[plr.UserId] = plr.Name
+		if plr == lplr then return end
+	
+		if table.find(blacklisteduserids, plr.UserId) or table.find(Users.ListEnabled, tostring(plr.UserId)) then
+			staffFunction(plr, 'blacklisted_user')
+		elseif getRole(plr, 5774246) >= 100 then
+			staffFunction(plr, 'staff_role')
+		else
+			local connection
+			connection = plr:GetAttributeChangedSignal('Spectator'):Connect(function()
+				checkJoin(plr, connection)
+			end)
+			StaffDetector:Clean(connection)
+			if checkJoin(plr, connection) then
+				return
+			end
+	
+			if not plr:GetAttribute('ClanTag') then
+				plr:GetAttributeChangedSignal('ClanTag'):Wait()
+			end
+	
+			if table.find(blacklistedclans, plr:GetAttribute('ClanTag')) and vape.Loaded and Clans.Enabled then
+				connection:Disconnect()
+				staffFunction(plr, 'blacklisted_clan_'..plr:GetAttribute('ClanTag'):lower())
+			end
+		end
+	end
+	
+	StaffDetector = vape.Categories.Utility:CreateModule({
+		Name = 'StaffDetector',
+		Function = function(callback)
+			if callback then
+				StaffDetector:Clean(playersService.PlayerAdded:Connect(playerAdded))
+				for _, v in playersService:GetPlayers() do
+					task.spawn(playerAdded, v)
+				end
+			else
+				table.clear(joined)
+			end
+		end,
+		Tooltip = 'Detects people with a staff rank ingame'
+	})
+	Mode = StaffDetector:CreateDropdown({
+		Name = 'Mode',
+		List = {'Uninject', 'Profile', 'Requeue', 'AutoConfig', 'Notify'},
+		Function = function(val)
+			if Profile.Object then
+				Profile.Object.Visible = val == 'Profile'
+			end
+		end
+	})
+	Clans = StaffDetector:CreateToggle({
+		Name = 'Blacklist clans',
+		Default = true
+	})
+	Party = StaffDetector:CreateToggle({
+		Name = 'Leave party'
+	})
+	Profile = StaffDetector:CreateTextBox({
+		Name = 'Profile',
+		Default = 'default',
+		Darker = true,
+		Visible = false
+	})
+	Users = StaffDetector:CreateTextList({
+		Name = 'Users',
+		Placeholder = 'player (userid)'
+	})
+	
+	task.spawn(function()
+		repeat task.wait(1) until vape.Loaded or vape.Loaded == nil
+		if vape.Loaded and not StaffDetector.Enabled then
+			StaffDetector:Toggle()
+		end
+	end)
 end)
 	
 run(function()
@@ -10853,564 +11167,7 @@ run(function()
 		end
 	end)
 end)
-
-run(function()
-	local DeviceSpoofer
-	local DeviceDrop
-	local originalValues = {}
-	local spoofed = false
-
-	local function saveOriginals()
-		originalValues.TouchEnabled = inputService.TouchEnabled
-		originalValues.KeyboardEnabled = inputService.KeyboardEnabled
-		originalValues.GamepadEnabled = inputService.GamepadEnabled
-		originalValues.MouseEnabled = inputService.MouseEnabled
-	end
-
-	local function restoreOriginals()
-		pcall(function()
-			for prop, val in originalValues do
-				inputService[prop] = val
-			end
-		end)
-	end
-
-	local profiles = {
-		['PC'] = function()
-			pcall(function()
-				inputService.TouchEnabled = false
-				inputService.KeyboardEnabled = true
-				inputService.GamepadEnabled = false
-				inputService.MouseEnabled = true
-			end)
-		end,
-		['Mobile'] = function()
-			pcall(function()
-				inputService.TouchEnabled = true
-				inputService.KeyboardEnabled = false
-				inputService.GamepadEnabled = false
-				inputService.MouseEnabled = false
-			end)
-		end,
-		['Xbox'] = function()
-			pcall(function()
-				inputService.TouchEnabled = false
-				inputService.KeyboardEnabled = false
-				inputService.GamepadEnabled = true
-				inputService.MouseEnabled = false
-			end)
-		end,
-	}
-
-	DeviceSpoofer = vape.Categories.Utility:CreateModule({
-		Name = 'DeviceSpoofer',
-		Tooltip = 'Makes other players see you on a different device',
-		Function = function(enabled)
-			if enabled then
-				if not spoofed then
-					saveOriginals()
-					spoofed = true
-				end
-				profiles[DeviceDrop.Value]()
-				notif('DeviceSpoofer', 'Showing as ' .. DeviceDrop.Value .. ' player', 4)
-			else
-				if spoofed then
-					restoreOriginals()
-					spoofed = false
-					notif('DeviceSpoofer', 'Device restored', 3)
-				end
-			end
-		end,
-	})
-
-	DeviceDrop = DeviceSpoofer:CreateDropdown({
-		Name = 'Show As',
-		List = {'PC', 'Mobile', 'Xbox'},
-		Default = 'PC',
-		Function = function(val)
-			if DeviceSpoofer.Enabled then
-				profiles[val]()
-				notif('DeviceSpoofer', 'Switched to ' .. val, 3)
-			end
-		end,
-	})
-end)
-
-run(function() -- CREDITS TO ERCHOBG AND SALAD AND BLANKEDVOID
-	local lplr = game.Players.LocalPlayer
-	local plrgui = lplr.PlayerGui
-	local deathscounter = 0
-	local regiondisplay = plrgui:WaitForChild("ServerRegionDisplay").ServerRegionText.Text
-	local playerded = false 
-	local debouncegaming = false
-	local SessionInfo = GuiLibrary.ObjectsThatCanBeSaved.WorldWindow.Api.CreateOptionsButton({
-		Name = "Custom Sessioninfo",
-		HoverText = "Customizable session info.",
-		Function = function(callback)
-			if callback then 
-				local function extractnumber(text)
-					local number = text:match("<b>(%d+)</b>")
-					return tonumber(number)
-				end
-				local function extracttimer(text)
-					local minutes, seconds = text:match("<b>(%d+:%d+)</b>")
-					return minutes
-				end
-				local function extractregion(text)
-					local region = text:match("REGION:%s*([^<]+)")
-					return region
-				end
-				
-				local Converted = {
-					["_SessionInfo"] = Instance.new("ScreenGui");
-					["_Background"] = Instance.new("Frame");
-					["_UICorner"] = Instance.new("UICorner");
-					["_SessionInfoLabel"] = Instance.new("TextLabel");
-					["_TimePlayed"] = Instance.new("TextLabel");
-					["_Kills"] = Instance.new("TextLabel");
-					["_Deaths"] = Instance.new("TextLabel");
-					["_Region"] = Instance.new("TextLabel");
-					["_DropShadowHolder"] = Instance.new("Frame");
-					["_DropShadow"] = Instance.new("ImageLabel");
-				}
-				
-				Converted["_SessionInfo"].ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-				Converted["_SessionInfo"].Name = "SessionInfo"
-				Converted["_SessionInfo"].Parent = plrgui
-				Converted["_SessionInfo"].ResetOnSpawn = false
-				
-				Converted["_Background"].BackgroundColor3 = Color3.fromHSV(0, 0, 0)
-				Converted["_Background"].BackgroundTransparency = 0.800000011920929
-				Converted["_Background"].BorderColor3 = Color3.fromRGB(0, 0, 0)
-				Converted["_Background"].BorderSizePixel = 0
-				Converted["_Background"].Position = UDim2.new(0.0116598075, 0, 0.375, 0)
-				Converted["_Background"].Size = UDim2.new(0.128257886, 0, 0.16310975, 0)
-				Converted["_Background"].Name = "Background"
-				Converted["_Background"].Parent = Converted["_SessionInfo"]
-				
-				Converted["_UICorner"].Parent = Converted["_Background"]
-				
-				Converted["_SessionInfoLabel"].Font = Enum.Font.SourceSansBold
-				Converted["_SessionInfoLabel"].Text = "Session Info"
-				Converted["_SessionInfoLabel"].TextColor3 = Color3.fromRGB(255, 255, 255)
-				Converted["_SessionInfoLabel"].TextScaled = true
-				Converted["_SessionInfoLabel"].TextSize = 14
-				Converted["_SessionInfoLabel"].TextWrapped = true
-				Converted["_SessionInfoLabel"].TextXAlignment = Enum.TextXAlignment.Left
-				Converted["_SessionInfoLabel"].BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-				Converted["_SessionInfoLabel"].BackgroundTransparency = 1
-				Converted["_SessionInfoLabel"].BorderColor3 = Color3.fromRGB(0, 0, 0)
-				Converted["_SessionInfoLabel"].BorderSizePixel = 0
-				Converted["_SessionInfoLabel"].Position = UDim2.new(0.0374331549, 0, 0, 0)
-				Converted["_SessionInfoLabel"].Size = UDim2.new(1, 0, 0.242990658, 0)
-				Converted["_SessionInfoLabel"].Name = "SessionInfoLabel"
-				Converted["_SessionInfoLabel"].Parent = Converted["_Background"]
-				
-				Converted["_TimePlayed"].Font = Enum.Font.SourceSans
-				Converted["_TimePlayed"].Text = "Time Played: 00:00" 
-				Converted["_TimePlayed"].TextColor3 = Color3.fromRGB(255, 255, 255)
-				Converted["_TimePlayed"].TextScaled = true
-				Converted["_TimePlayed"].TextSize = 14
-				Converted["_TimePlayed"].TextWrapped = true
-				Converted["_TimePlayed"].TextXAlignment = Enum.TextXAlignment.Left
-				Converted["_TimePlayed"].BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-				Converted["_TimePlayed"].BackgroundTransparency = 1
-				Converted["_TimePlayed"].BorderColor3 = Color3.fromRGB(0, 0, 0)
-				Converted["_TimePlayed"].BorderSizePixel = 0
-				Converted["_TimePlayed"].Position = UDim2.new(0.0374331549, 0, 0.275288522, 0)
-				Converted["_TimePlayed"].Size = UDim2.new(1, 0, 0.168224305, 0)
-				Converted["_TimePlayed"].Name = "TimePlayed"
-				Converted["_TimePlayed"].Parent = Converted["_Background"]
-				
-				Converted["_Kills"].Font = Enum.Font.SourceSans
-				Converted["_Kills"].Text = "Kills: 0" 
-				Converted["_Kills"].TextColor3 = Color3.fromRGB(255, 255, 255)
-				Converted["_Kills"].TextScaled = true
-				Converted["_Kills"].TextSize = 14
-				Converted["_Kills"].TextWrapped = true
-				Converted["_Kills"].TextXAlignment = Enum.TextXAlignment.Left
-				Converted["_Kills"].BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-				Converted["_Kills"].BackgroundTransparency = 1
-				Converted["_Kills"].BorderColor3 = Color3.fromRGB(0, 0, 0)
-				Converted["_Kills"].BorderSizePixel = 0
-				Converted["_Kills"].Position = UDim2.new(0.0374331549, 0, 0.445024729, 0)
-				Converted["_Kills"].Size = UDim2.new(1, 0, 0.168224305, 0)
-				Converted["_Kills"].Name = "Kills"
-				Converted["_Kills"].Parent = Converted["_Background"]
-				
-				Converted["_Deaths"].Font = Enum.Font.SourceSans
-				Converted["_Deaths"].Text = "Deaths: 0"
-				Converted["_Deaths"].TextColor3 = Color3.fromRGB(255, 255, 255)
-				Converted["_Deaths"].TextScaled = true
-				Converted["_Deaths"].TextSize = 14
-				Converted["_Deaths"].TextWrapped = true
-				Converted["_Deaths"].TextXAlignment = Enum.TextXAlignment.Left
-				Converted["_Deaths"].BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-				Converted["_Deaths"].BackgroundTransparency = 1
-				Converted["_Deaths"].BorderColor3 = Color3.fromRGB(0, 0, 0)
-				Converted["_Deaths"].BorderSizePixel = 0
-				Converted["_Deaths"].Position = UDim2.new(0.0374331549, 0, 0.614760935, 0)
-				Converted["_Deaths"].Size = UDim2.new(1, 0, 0.168224305, 0)
-				Converted["_Deaths"].Name = "Deaths"
-				Converted["_Deaths"].Parent = Converted["_Background"]
-				
-				Converted["_Region"].Font = Enum.Font.SourceSans
-				Converted["_Region"].Text = "Region: "..extractregion(regiondisplay)
-				Converted["_Region"].TextColor3 = Color3.fromRGB(255, 255, 255)
-				Converted["_Region"].TextScaled = true
-				Converted["_Region"].TextSize = 14
-				Converted["_Region"].TextWrapped = true
-				Converted["_Region"].TextXAlignment = Enum.TextXAlignment.Left
-				Converted["_Region"].BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-				Converted["_Region"].BackgroundTransparency = 1
-				Converted["_Region"].BorderColor3 = Color3.fromRGB(0, 0, 0)
-				Converted["_Region"].BorderSizePixel = 0
-				Converted["_Region"].Position = UDim2.new(0.0374331549, 0, 0.78298521, 0)
-				Converted["_Region"].Size = UDim2.new(1, 0, 0.168224305, 0)
-				Converted["_Region"].Name = "Region"
-				Converted["_Region"].Parent = Converted["_Background"]
-				
-				Converted["_DropShadowHolder"].BackgroundTransparency = 1
-				Converted["_DropShadowHolder"].BorderSizePixel = 0
-				Converted["_DropShadowHolder"].Size = UDim2.new(1, 0, 1, 0)
-				Converted["_DropShadowHolder"].ZIndex = 0
-				Converted["_DropShadowHolder"].Name = "DropShadowHolder"
-				Converted["_DropShadowHolder"].Parent = Converted["_Background"]
-				
-				Converted["_DropShadow"].Image = "rbxassetid://6014261993"
-				Converted["_DropShadow"].ImageColor3 = Color3.fromRGB(0, 0, 0)
-				Converted["_DropShadow"].ImageTransparency = 0.5
-				Converted["_DropShadow"].ScaleType = Enum.ScaleType.Slice
-				Converted["_DropShadow"].SliceCenter = Rect.new(49, 49, 450, 450)
-				Converted["_DropShadow"].AnchorPoint = Vector2.new(0.5, 0.5)
-				Converted["_DropShadow"].BackgroundTransparency = 1
-				Converted["_DropShadow"].BorderSizePixel = 0
-				Converted["_DropShadow"].Position = UDim2.new(0.5, 0, 0.5, 0)
-				Converted["_DropShadow"].Size = UDim2.new(1, 47, 1, 47)
-				Converted["_DropShadow"].ZIndex = 0
-				Converted["_DropShadow"].Name = "DropShadow"
-				Converted["_DropShadow"].Parent = Converted["_DropShadowHolder"]
-				
-				local function timerupdate()
-					while true do
-						wait()
-						local timercounter = plrgui.TopBarAppGui.TopBarApp["2"]["5"].Text
-						local timergaming = extracttimer(timercounter)
-						Converted["_TimePlayed"].Text = "Time Played: " .. timergaming
-					end
-				end
-				
-				local function killsupdate()
-					while true do
-						wait()
-						local killscounter = plrgui.TopBarAppGui.TopBarApp["3"]["5"].Text
-						local kills = extractnumber(killscounter)
-						Converted["_Kills"].Text = "Kills: " .. kills
-					end
-				end
-				
-				local function deathcounterfunc()
-					local humanoid = lplr.Character:WaitForChild("Humanoid")
-					humanoid.HealthChanged:Connect(function(health)
-						if not debouncegaming then
-							debouncegaming = true
-							if health <= 0 and not playerded then
-								deathscounter = deathscounter + 1
-								Converted["_Deaths"].Text = "Deaths: " .. deathscounter
-								playerded = true
-								debouncegaming = false
-								wait(1) 
-							elseif health > 0 and playerded then
-								playerded = false
-							end
-						end
-					end)
-				end
-				
-				task.spawn(timerupdate)
-				task.spawn(killsupdate)
-				task.spawn(deathcounterfunc)	
-			else 
-				local plrgui = game.Players.LocalPlayer.PlayerGui
-				if plrgui:FindFirstChild("SessionInfo") then 
-					local sessioninfo = plrgui.SessionInfo
-					sessioninfo:Destroy()
-				else 
-					ErrorWarning("SessionInfo", "Session Info not found, please dm salad about this. (module made by ercho and salad)", 30)
-				end
-			end
-		end
-	})
-	SessioninfoBgColor = SessionInfo.CreateColorSlider({
-		Name = "Background Color",
-		Function = function(h, s, v) 
-			if game.Players.LocalPlayer.PlayerGui:FindFirstChild("SessionInfo") then 
-				game.Players.LocalPlayer.PlayerGui.SessionInfo.Background.BackgroundColor3 = Color3.fromHSV(h, s, v)
-			else
-				print("no session info found lol")
-			end
-		end
-	})
-end)
-
-local function getNotificationMessage(messagesList, defaultMessage, replaceTag, replaceValue)
-    local message = #messagesList > 0 and messagesList[math.random(1, #messagesList)] or defaultMessage
-    return message:gsub(replaceTag, replaceValue)
-end
-
-local function handleBedBreakEvent(bedTable, lplr, BedBreakMessage)
-    if bedTable.brokenBedTeam.id == lplr:GetAttribute("Team") then
-        warnAction("Bed", "Your bed has been destroyed by " .. (bedTable.player.DisplayName or bedTable.player.Name) .. "! Be careful.", 7)
-    elseif bedTable.player.UserId == lplr.UserId then
-        local team = bedwars.QueueMeta[store.queueType].teams[tonumber(bedTable.brokenBedTeam.id)]
-        local teamname = team and team.displayName:lower() or "unknown"
-        local message = getNotificationMessage({}, "You have destroyed <bed>'s bed", "<bed>", teamname)
-        Action("EventNotifier", message, 3)
-    end
-end
-
-local function handleEntityDeathEvent(deathTable, lplr, DeathMessage, FinalKillMessage)
-    local killer = playersService:GetPlayerFromCharacter(deathTable.fromEntity)
-    local killed = playersService:GetPlayerFromCharacter(deathTable.entityInstance)
-    
-    if not killed or not killer then return end
-    
-    if deathTable.finalKill then
-        if killed == lplr and killer ~= lplr then
-            local message = getNotificationMessage({}, "You have lost to <name>. Good game.", "<name>", killer.DisplayName)
-            warnAction("EventNotifier", message, 3)
-        elseif killer == lplr then
-            local message = getNotificationMessage({}, "You've defeated <name>!", "<name>", killed.DisplayName)
-            Action("EventNotifier", message, 3)
-        end
-    else
-        if deathTable.fromEntity == lplr.Character and deathTable.entityInstance ~= lplr.Character then
-            local message = getNotificationMessage({}, "You have killed <name>.", "<name>", killed.DisplayName)
-            Action("EventNotifier", message, 3)
-        end
-    end
-end
-
-local function handleMatchEndEvent(winstuff, lplr)
-    local myTeam = bedwars.ClientStoreHandler:getState().Game.myTeam
-    if myTeam and myTeam.id == winstuff.winningTeamId then
-        WinW("EventNotifier", "You've won the game! gg", 60)
-    end
-end
-
-local function handleBedShieldEndEvent()
-    warnAction("EventNotifier", "Bed shields are down.", 7)
-end
-
-local function initializeNotifications(notifications, lplr)
-    notifications = GuiLibrary.ObjectsThatCanBeSaved.UtilityWindow.Api.CreateOptionsButton({
-        Name = "EventNotifier",
-        Function = function(notified)
-            if notified then
-                task.spawn(function()
-                    table.insert(notifications.Connections, vapeEvents.BedwarsBedBreak.Event:Connect(function(bedTable)
-                        handleBedBreakEvent(bedTable, lplr)
-                    end))
-
-                    table.insert(notifications.Connections, vapeEvents.EntityDeathEvent.Event:Connect(function(deathTable)
-                        handleEntityDeathEvent(deathTable, lplr)
-                    end))
-                    
-                    table.insert(notifications.Connections, vapeEvents.MatchEndEvent.Event:Connect(function(winstuff)
-                        handleMatchEndEvent(winstuff, lplr)
-                    end))
-
-                    table.insert(notifications.Connections, vapeEvents.BedShieldsEnd.Event:Connect(handleBedShieldEndEvent))
-                end)
-            end
-        end,
-        HoverText = "This module will notify you when actions happen Credits : blankedvoid ",
-		ExtraText = function() return "UselessModule" end
-    })
-
-    local toggles = {
-        {"Final Kill Notifier", "Notifies you when you final kill someone (he wont be able to respawn)"},
-        {"No Bed Notifier", "Notifies you when your bed gets destroyed by someone"},
-        {"Player Death Notifier", "Notifies you when you pass away (with cheats lmao)"},
-        {"Bed Destroyer Notifier", "Notifies when you destroy a team's bed."},
-        {"Kills Notifier", "Notifies when you kill someone."},
-        {"Game Won Notifier", "Notifies you when you win the game."},
-        {"End Of Bed Protection", "Notifies you when bed shields end."}
-    }
-
-    for _, toggle in ipairs(toggles) do
-        notifications.CreateToggle({
-            Name = toggle[1],
-            Function = function() end,
-            Default = true,
-            HoverText = toggle[2]
-        })
-    end
-end
-
-run(function()
-	local Nuker = {Enabled = false}
-	local nukerrange = {Value = 1}
-	local nukereffects = {Enabled = false}
-	local nukeranimation = {Enabled = false}
-	local nukernofly = {Enabled = false}
-	local nukerlegit = {Enabled = false}
-	local nukerown = {Enabled = false}
-	local nukerluckyblock = {Enabled = false}
-	local nukerironore = {Enabled = false}
-	local nukerbeds = {Enabled = false}
-	local nukercustom = {RefreshValues = function() end, ObjectList = {}}
-	local luckyblocktable = {}
-
-	Nuker = GuiLibrary.ObjectsThatCanBeSaved.WorldWindow.Api.CreateOptionsButton({
-		Name = "Nuker",
-		Function = function(callback)
-			if callback then
-				for i,v in pairs(store.blocks) do
-					if table.find(nukercustom.ObjectList, v.Name) or (nukerluckyblock.Enabled and v.Name:find("lucky")) or (nukerironore.Enabled and v.Name == "iron_ore") then
-						table.insert(luckyblocktable, v)
-					end
-				end
-				table.insert(Nuker.Connections, collectionService:GetInstanceAddedSignal("block"):Connect(function(v)
-					if table.find(nukercustom.ObjectList, v.Name) or (nukerluckyblock.Enabled and v.Name:find("lucky")) or (nukerironore.Enabled and v.Name == "iron_ore") then
-						table.insert(luckyblocktable, v)
-					end
-				end))
-				table.insert(Nuker.Connections, collectionService:GetInstanceRemovedSignal("block"):Connect(function(v)
-					if table.find(nukercustom.ObjectList, v.Name) or (nukerluckyblock.Enabled and v.Name:find("lucky")) or (nukerironore.Enabled and v.Name == "iron_ore") then
-						table.remove(luckyblocktable, table.find(luckyblocktable, v))
-					end
-				end))
-				task.spawn(function()
-					repeat
-						if (not nukernofly.Enabled or not GuiLibrary.ObjectsThatCanBeSaved.FlyOptionsButton.Api.Enabled) then
-							local broke = not entityLibrary.isAlive
-							local tool = (not nukerlegit.Enabled) and {Name = "wood_axe"} or store.localHand.tool
-							if nukerbeds.Enabled then
-								for i, obj in pairs(collectionService:GetTagged("bed")) do
-									if broke then break end
-									if obj.Parent ~= nil then
-										if obj:GetAttribute("BedShieldEndTime") then
-											if obj:GetAttribute("BedShieldEndTime") > workspace:GetServerTimeNow() then continue end
-										end
-										if ((entityLibrary.LocalPosition or entityLibrary.character.HumanoidRootPart.Position) - obj.Position).magnitude <= nukerrange.Value then
-											if tool and bedwars.ItemTable[tool.Name].breakBlock and bedwars.BlockController:isBlockBreakable({blockPosition = obj.Position / 3}, lplr) then
-												local res, amount = getBestBreakSide(obj.Position)
-												local res2, amount2 = getBestBreakSide(obj.Position + Vector3.new(0, 0, 3))
-												broke = true
-												bedwars.breakBlock((amount < amount2 and obj.Position or obj.Position + Vector3.new(0, 0, 3)), nukereffects.Enabled, (amount < amount2 and res or res2), false, nukeranimation.Enabled)
-												break
-											end
-										end
-									end
-								end
-							end
-							broke = broke and not entityLibrary.isAlive
-							for i, obj in pairs(luckyblocktable) do
-								if broke then break end
-								if entityLibrary.isAlive then
-									if obj and obj.Parent ~= nil then
-										if ((entityLibrary.LocalPosition or entityLibrary.character.HumanoidRootPart.Position) - obj.Position).magnitude <= nukerrange.Value and (nukerown.Enabled or obj:GetAttribute("PlacedByUserId") ~= lplr.UserId) then
-											if tool and bedwars.ItemTable[tool.Name].breakBlock and bedwars.BlockController:isBlockBreakable({blockPosition = obj.Position / 3}, lplr) then
-												bedwars.breakBlock(obj.Position, nukereffects.Enabled, getBestBreakSide(obj.Position), true, nukeranimation.Enabled)
-												break
-											end
-										end
-									end
-								end
-							end
-						end
-						task.wait()
-					until (not Nuker.Enabled)
-				end)
-			else
-				luckyblocktable = {}
-			end
-		end,
-		HoverText = "Automatically destroys beds & luckyblocks around you."
-	})
-	nukerrange = Nuker.CreateSlider({
-		Name = "Break range",
-		Min = 1,
-		Max = 30,
-		Function = function(val) end,
-		Default = 30
-	})
-	nukerlegit = Nuker.CreateToggle({
-		Name = "Hand Check",
-		Function = function() end
-	})
-	nukereffects = Nuker.CreateToggle({
-		Name = "Show HealthBar & Effects",
-		Function = function(callback)
-			if not callback then
-				bedwars.BlockBreaker.healthbarMaid:DoCleaning()
-			end
-		 end,
-		Default = true
-	})
-	nukeranimation = Nuker.CreateToggle({
-		Name = "Break Animation",
-		Function = function() end
-	})
-	nukerown = Nuker.CreateToggle({
-		Name = "Self Break",
-		Function = function() end,
-	})
-	nukerbeds = Nuker.CreateToggle({
-		Name = "Break Beds",
-		Function = function(callback) end,
-		Default = true
-	})
-	nukernofly = Nuker.CreateToggle({
-		Name = "Fly Disable",
-		Function = function() end
-	})
-	nukerluckyblock = Nuker.CreateToggle({
-		Name = "Break LuckyBlocks",
-		Function = function(callback)
-			if callback then
-				luckyblocktable = {}
-				for i,v in pairs(store.blocks) do
-					if table.find(nukercustom.ObjectList, v.Name) or (nukerluckyblock.Enabled and v.Name:find("lucky")) or (nukerironore.Enabled and v.Name == "iron_ore") then
-						table.insert(luckyblocktable, v)
-					end
-				end
-			else
-				luckyblocktable = {}
-			end
-		 end,
-		Default = true
-	})
-	nukerironore = Nuker.CreateToggle({
-		Name = "Break IronOre",
-		Function = function(callback)
-			if callback then
-				luckyblocktable = {}
-				for i,v in pairs(store.blocks) do
-					if table.find(nukercustom.ObjectList, v.Name) or (nukerluckyblock.Enabled and v.Name:find("lucky")) or (nukerironore.Enabled and v.Name == "iron_ore") then
-						table.insert(luckyblocktable, v)
-					end
-				end
-			else
-				luckyblocktable = {}
-			end
-		end
-	})
-	nukercustom = Nuker.CreateTextList({
-		Name = "NukerList",
-		TempText = "block (tesla_trap)",
-		AddFunction = function()
-			luckyblocktable = {}
-			for i,v in pairs(store.blocks) do
-				if table.find(nukercustom.ObjectList, v.Name) or (nukerluckyblock.Enabled and v.Name:find("lucky")) then
-					table.insert(luckyblocktable, v)
-				end
-			end
-		end
-	})
-end)
-
+	
 runFunction(function()
 		local OldHighlight = {Enabled = false}
 		OldHighlight = GuiLibrary.ObjectsThatCanBeSaved.RenderWindow.Api.CreateOptionsButton({
