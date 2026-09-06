@@ -11310,4 +11310,3 @@ run(function()
 
 	vape:Clean(function() stopEmote() end)
 end)
-
