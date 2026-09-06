@@ -10280,10 +10280,10 @@ end)
 
 run(function()
     local SkinChanger
-    local Players = playersService
-    local RunService = runService
+    local Players = game:GetService("Players")
+    local RunService = game:GetService("RunService")
     local LocalPlayer = Players.LocalPlayer
-    local RS = replicatedStorage
+    local RS = game:GetService("ReplicatedStorage")
 
     local CURRENT_ITEM_SKIN = "Victorious Lyla"
     local CURRENT_SKIN_TYPE = "Nightmare"
@@ -11090,7 +11090,7 @@ run(function()
             applyKitSkinHook()
             applyStoreSkins()
             if LocalPlayer.Character then 
-                task.spawn(onCharacterAdded, LocalPlayer.Character)
+                onCharacterAdded(LocalPlayer.Character)
             end
             connections[#connections + 1] = LocalPlayer.CharacterAdded:Connect(onCharacterAdded)
         end
@@ -11103,7 +11103,6 @@ run(function()
 
     local SkinTypeDropdown
 
-    -- Placed in the Utility tab and named SkinChanger
     SkinChanger = vape.Categories.Utility:CreateModule({
         Name = "SkinChanger",
         Function = function(callback)
