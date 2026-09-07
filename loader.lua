@@ -10,8 +10,10 @@ end
 
 local function downloadFile(path, func)
 	if not isfile(path) then
+		local commitFile = 'FlowVape/profiles/commit.txt'
+		local commit = isfile(commitFile) and readfile(commitFile) or 'main'
 		local suc, res = pcall(function()
-			return game:HttpGet('https://raw.githubusercontent.com/qyroke2/VapeV4ForRoblox/'..readfile('FlowVape/profiles/commit.txt')..'/'..select(1, path:gsub('FlowVape/', '')), true)
+			return game:HttpGet('https://raw.githubusercontent.com/qyroke2/VapeV4ForRoblox/'..commit..'/'..select(1, path:gsub('FlowVape/', '')), true)
 		end)
 		if not suc or res == '404: Not Found' then
 			error(res)
