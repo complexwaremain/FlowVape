@@ -5,7 +5,7 @@ local isfile = isfile or function(file)
 	return suc and res ~= nil and res ~= ''
 end
 local delfile = delfile or function(file)
-	writefile(file, '')
+	pcall(writefile, file, '')
 end
 
 local function wipeFolder(path)
@@ -18,31 +18,31 @@ local function wipeFolder(path)
 	end
 end
 
--- Create folders FIRST
 for _, folder in {'FlowVape', 'FlowVape/games', 'FlowVape/profiles', 'FlowVape/assets', 'FlowVape/libraries', 'FlowVape/guis'} do
 	if not isfolder(folder) then
-		makefolder(folder)
+		pcall(makefolder, folder)
 	end
 end
 
--- Initialize commit BEFORE downloading anything
+task.wait(0.1)
+
 if not shared.VapeDeveloper then
 	local _, subbed = pcall(function() 
 		return game:HttpGet('https://github.com/qyroke2/VapeV4ForRoblox') 
 	end)
-	local commit = subbed:find('currentOid')
+	local commit = subbed and subbed:find('currentOid') or nil
 	commit = commit and subbed:sub(commit + 13, commit + 52) or nil
 	commit = commit and #commit == 40 and commit or 'main'
+	
 	if commit == 'main' or (isfile('FlowVape/profiles/commit.txt') and readfile('FlowVape/profiles/commit.txt') or '') ~= commit then
 		wipeFolder('FlowVape')
 		wipeFolder('FlowVape/games')
 		wipeFolder('FlowVape/guis')
 		wipeFolder('FlowVape/libraries')
 	end
-	writefile('FlowVape/profiles/commit.txt', commit)
+	pcall(writefile, 'FlowVape/profiles/commit.txt', commit)
 end
 
--- NOW define downloadFile (after commit.txt is guaranteed to exist)
 local function downloadFile(path, func)
 	if not isfile(path) then
 		local commitFile = 'FlowVape/profiles/commit.txt'
@@ -56,7 +56,9 @@ local function downloadFile(path, func)
 		if path:find('.lua') then
 			res = '--This watermark is used to delete the file if its cached, remove it to make the file persist after vape updates.\n'..res
 		end
-		writefile(path, res)
+		pcall(writefile, path, res)
+		if func then return func(path) end
+		return res 
 	end
 	return (func or readfile)(path)
 end
