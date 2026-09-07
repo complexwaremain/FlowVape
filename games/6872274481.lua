@@ -11269,3 +11269,26 @@ run(function()
     vape:Clean(function() stopSkinChanger() end)
 end)
 
+run(function()
+	local InfiniteJump
+
+	InfiniteJump = vape.Categories.Blatant:CreateModule({
+		Name = 'InfiniteJump',
+		Tooltip = 'Jump infinitely mid-air.',
+		Function = function(enabled)
+			if enabled then
+				InfiniteJump:Clean(inputService.JumpRequest:Connect(function()
+					if not entitylib.isAlive then return end
+					local hum = entitylib.character.Humanoid
+					if not hum then return end
+					local state = hum:GetState()
+					if state == Enum.HumanoidStateType.Freefall
+					or state == Enum.HumanoidStateType.Jumping
+					or state == Enum.HumanoidStateType.FallingDown then
+						hum:ChangeState(Enum.HumanoidStateType.Jumping)
+					end
+				end))
+			end
+		end,
+	})
+end)
