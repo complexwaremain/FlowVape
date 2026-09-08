@@ -28,7 +28,7 @@ task.wait(0.1)
 
 if not shared.VapeDeveloper then
 	local _, subbed = pcall(function() 
-		return game:HttpGet('https://github.com/qyroke2/VapeV4ForRoblox') 
+		return game:HttpGet('https://github.com/complexwaremain/FlowVape') 
 	end)
 	local commit = subbed and subbed:find('currentOid') or nil
 	commit = commit and subbed:sub(commit + 13, commit + 52) or nil
@@ -48,7 +48,7 @@ local function downloadFile(path, func)
 		local commitFile = 'FlowVape/profiles/commit.txt'
 		local commit = isfile(commitFile) and readfile(commitFile) or 'main'
 		local suc, res = pcall(function()
-			return game:HttpGet('https://raw.githubusercontent.com/qyroke2/VapeV4ForRoblox/'..commit..'/'..select(1, path:gsub('FlowVape/', '')), true)
+			return game:HttpGet('https://raw.githubusercontent.com/complexwaremain/FlowVape/'..commit..'/'..select(1, path:gsub('FlowVape/', '')), true)
 		end)
 		if not suc or res == '404: Not Found' then
 			error(res)
