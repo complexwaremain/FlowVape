@@ -1,8 +1,6 @@
 repeat task.wait() until game:IsLoaded()
 if shared.vape then shared.vape:Uninject() end
 
--- why do exploits fail to implement anything correctly? Is it really that hard?
--- wave and volt suck ass
 if identifyexecutor then
 	if table.find({'Argon', 'Volt', 'Wave'}, ({identifyexecutor()})[1]) then
 		getgenv().setthreadidentity = nil
@@ -33,6 +31,7 @@ local function downloadFile(path, func)
 	if not isfile(path) then
 		local suc, res = pcall(function()
 			return game:HttpGet('https://raw.githubusercontent.com/complexwaremain/FlowVape/main/'..select(1, path:gsub('FlowVape/', '')), true)
+		end)
 		if not suc or res == '404: Not Found' then
 			error(res)
 		end
@@ -63,7 +62,7 @@ local function finishLoading()
 				if shared.VapeDeveloper then
 					loadstring(readfile('FlowVape/loader.lua'), 'loader')()
 				else
-					loadstring(game:HttpGet('https://raw.githubusercontent.com/complexwaremain/FlowVape/'..readfile('FlowVape/profiles/commit.txt')..'/loader.lua', true), 'loader')()
+					loadstring(game:HttpGet('https://raw.githubusercontent.com/complexwaremain/FlowVape/main/loader.lua', true), 'loader')()
 				end
 			]]
 			if shared.VapeDeveloper then
@@ -93,25 +92,33 @@ local gui = readfile('FlowVape/profiles/gui.txt')
 if not isfolder('FlowVape/assets/'..gui) then
 	makefolder('FlowVape/assets/'..gui)
 end
+
 local guicontent = game:HttpGet('https://raw.githubusercontent.com/complexwaremain/FlowVape/main/guis/'..gui..'.lua')
 local guiload, guierr = loadstring(guicontent, 'gui')
 if not guiload then
-    error('GUI syntax error: '..tostring(guierr))
+	error('GUI syntax error: '..tostring(guierr))
 end
-vape = guiload()
+local ok, result = pcall(guiload)
+if not ok then
+	error('GUI runtime error: '..tostring(result))
+end
+vape = result
 shared.vape = vape
 
 if not shared.VapeIndependent then
-	loadstring(downloadFile('FlowVape/games/universal.lua'), 'universal')()
+	local universalcontent = game:HttpGet('https://raw.githubusercontent.com/complexwaremain/FlowVape/main/games/universal.lua')
+	loadstring(universalcontent, 'universal')()
+
 	if isfile('FlowVape/games/'..game.PlaceId..'.lua') then
 		loadstring(readfile('FlowVape/games/'..game.PlaceId..'.lua'), tostring(game.PlaceId))(...)
 	else
 		if not shared.VapeDeveloper then
 			local suc, res = pcall(function()
-				return game:HttpGet('https://raw.githubusercontent.com/complexwaremain/FlowVape/main/'..select(1, path:gsub('FlowVape/', '')), true)
+				return game:HttpGet('https://raw.githubusercontent.com/complexwaremain/FlowVape/main/games/'..game.PlaceId..'.lua', true)
 			end)
 			if suc and res ~= '404: Not Found' then
-				loadstring(downloadFile('FlowVape/games/'..game.PlaceId..'.lua'), tostring(game.PlaceId))(...)
+				writefile('FlowVape/games/'..game.PlaceId..'.lua', res)
+				loadstring(res, tostring(game.PlaceId))(...)
 			end
 		end
 	end
