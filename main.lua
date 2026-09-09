@@ -93,7 +93,12 @@ local gui = readfile('FlowVape/profiles/gui.txt')
 if not isfolder('FlowVape/assets/'..gui) then
 	makefolder('FlowVape/assets/'..gui)
 end
-vape = loadstring(downloadFile('FlowVape/guis/'..gui..'.lua'), 'gui')()
+local guicontent = downloadFile('FlowVape/guis/'..gui..'.lua')
+local guiload, guierr = loadstring(guicontent, 'gui')
+if not guiload then
+    error('GUI syntax error: '..tostring(guierr))
+end
+vape = guiload()
 shared.vape = vape
 
 if not shared.VapeIndependent then
