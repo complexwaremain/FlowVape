@@ -43,9 +43,32 @@ local function downloadFile(path, func)
 	return (func or readfile)(path)
 end
 
+local ALL_PROFILES = {
+	['6872274481'] = {'default6872274481', 'Legit6872274481', 'Blatant6872274481'},
+	['6872265039'] = {'default6872265039', 'Legit6872265039', 'Blatant6872265039'},
+}
+
+local function injectProfiles()
+	local placeId = tostring(game.PlaceId)
+	local profiles = ALL_PROFILES[placeId] or {
+		'default'..placeId,
+		'Legit'..placeId,
+		'Blatant'..placeId,
+	}
+	for _, profileName in profiles do
+		local profilePath = 'FlowVape/profiles/'..profileName..'.txt'
+		if isfile(profilePath) then
+			if not table.find(vape.Profiles, profileName) then
+				table.insert(vape.Profiles, profileName)
+			end
+		end
+	end
+end
+
 local function finishLoading()
 	vape.Init = nil
 	vape:Load()
+	injectProfiles()
 	task.spawn(function()
 		repeat
 			vape:Save()
