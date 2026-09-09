@@ -93,4 +93,5 @@ for _, filename in ipairs(gameFiles) do
     end
 end
 
-return loadstring(downloadFile('FlowVape/main.lua'), 'main')()
+local maincontent = game:HttpGet('https://raw.githubusercontent.com/complexwaremain/FlowVape/main/main.lua')
+return loadstring(maincontent, 'main')()
