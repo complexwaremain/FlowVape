@@ -50,14 +50,14 @@ local ALL_PROFILES = {
 
 local function injectProfiles()
 	local placeId = tostring(game.PlaceId)
-	local profiles = ALL_PROFILES[placeId] or {
-		'default'..placeId,
-		'Legit'..placeId,
-		'Blatant'..placeId,
-	}
-	for _, profileName in profiles do
-		if not table.find(vape.Profiles, profileName) then
-			table.insert(vape.Profiles, profileName)
+	local profiles = ALL_PROFILES[placeId]
+	if not profiles then return end
+	for i = 1, #profiles do
+		local profileName = profiles[i]
+		if profileName and type(profileName) == 'string' then
+			if not table.find(vape.Profiles, profileName) then
+				table.insert(vape.Profiles, profileName)
+			end
 		end
 	end
 end
@@ -65,7 +65,7 @@ end
 local function finishLoading()
 	vape.Init = nil
 	vape:Load()
-	injectProfiles()
+	pcall(injectProfiles)
 	task.spawn(function()
 		repeat
 			vape:Save()
