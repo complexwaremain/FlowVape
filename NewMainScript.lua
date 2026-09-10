@@ -325,42 +325,37 @@ local function downloadGames()
 end
 
 local function downloadAssets()
-    -- Read the GUI name from gui.txt so we know which folder to save assets to
-    local guiName = 'new'
-    if isfile('FlowVape/profiles/gui.txt') then
-        guiName = readfile('FlowVape/profiles/gui.txt'):gsub('%s+', '') -- remove whitespace
+    if not isfolder('FlowVape/assets/new') then
+        makefolder('FlowVape/assets/new')
     end
 
-    local localFolder = 'FlowVape/assets/'..guiName
-    if not isfolder(localFolder) then
-        makefolder(localFolder)
+    local ok, response = pcall(function()
+        return game:HttpGet('https://api.github.com/repos/complexwaremain/FlowVape/contents/assets/new?ref=main')
+    end)
+    if not ok or not response then return end
+
+    local files = {}
+    local decOk, decoded = pcall(function()
+        return httpService:JSONDecode(response)
+    end)
+
+    if decOk and type(decoded) == 'table' then
+        for _, f in ipairs(decoded) do
+            if f.type == 'file' and f.name and f.download_url then
+                table.insert(files, {name = f.name, url = f.download_url})
+            end
+        end
+    else
+        for name, url in response:gmatch('"name":"([^"]+)".-?"download_url":"([^"]+)"') do
+            if url:match('raw%.githubusercontent') or url:match('github%.com') then
+                table.insert(files, {name = name, url = url})
+            end
+        end
     end
 
-    local assets = {
-        'textv4.png',
-        'guiv4.png',
-        'textvape.png',
-        'guivape.png',
-        'FlowVape.png',
-        'FlowVapeText.png'
-    }
-
-    for _, asset in ipairs(assets) do
-        -- Download from assets/new/ but save to the local GUI folder
-        downloadFile(BASE..'assets/new/'..asset, localFolder..'/'..asset)
+    for _, f in ipairs(files) do
+        downloadFile(f.url, 'FlowVape/assets/new/'..f.name)
     end
-end
-
-local function downloadGuis()
-    local guiName = 'new'
-    if isfile('FlowVape/profiles/gui.txt') then
-        guiName = readfile('FlowVape/profiles/gui.txt'):gsub('%s+', '')
-    end
-
-    -- Download the custom GUI file
-    downloadFile(BASE..'guis/new.lua', 'FlowVape/guis/'..guiName..'.lua')
-    -- Also save as customgui.lua just in case
-    downloadFile(BASE..'guis/new.lua', 'FlowVape/guis/customgui.lua')
 end
 
 local function load(isMobile)
@@ -388,28 +383,12 @@ local function load(isMobile)
     task.wait(0.1)
     downloadAssets()
 
-    statusLabel.Text = 'Downloading guis...'
-    task.wait(0.1)
-    downloadGuis()
-
     statusLabel.Text = 'Loading FlowVape...'
     task.wait(0.2)
 
     shared.FlowVapeIsMobile = isMobile
 
     local maincontent = game:HttpGet(BASE..'main.lua')
-
-    -- PATCH main.lua to fix the watermark:
-    -- 1. Make downloadFile global so the GUI script can access it
-    maincontent = maincontent:gsub("local function downloadFile", "downloadFile = function")
-    -- 2. Replace any hardcoded standard Vape V4 repo URLs inside the GUI script with FlowVape URLs
-    maincontent = maincontent:gsub(
-        "local guicontent = game:HttpGet%(%(?['\"]https://raw%.githubusercontent%.com/complexwaremain/FlowVape/main/guis/'%.%.gui%.%.['\"]lua['\"]%)?%)",
-        function(match)
-            return match .. "\nguicontent = guicontent:gsub('7GrandDad/VapeV4ForRoblox', 'complexwaremain/FlowVape'):gsub('qyroke4/VapeV4ForRoblox', 'complexwaremain/FlowVape')"
-        end
-    )
-
     pcall(writefile, 'FlowVape/main.lua', maincontent)
 
     local ok, err = pcall(function()
