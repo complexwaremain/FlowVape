@@ -87,8 +87,8 @@ local getcustomassets = {
 	['FlowVape/assets/new/guisettings.png'] = 'rbxassetid://14368318994',
 	['FlowVape/assets/new/guislider.png'] = 'rbxassetid://14368320020',
 	['FlowVape/assets/new/guisliderrain.png'] = 'rbxassetid://14368321228',
-	['FlowVape/assets/new/guiv4.png'] = 'rbxassetid://14368322199',
-	['FlowVape/assets/new/guivape.png'] = 'rbxassetid://14657521312',
+	['FlowVape/assets/new/guiv4.png'] = 'rbxassetid://79794409948544',
+	['FlowVape/assets/new/guivape.png'] = 'rbxassetid://100582785474625',
 	['FlowVape/assets/new/info.png'] = 'rbxassetid://14368324807',
 	['FlowVape/assets/new/inventoryicon.png'] = 'rbxassetid://14928011633',
 	['FlowVape/assets/new/legit.png'] = 'rbxassetid://14425650534',
@@ -116,8 +116,8 @@ local getcustomassets = {
 	['FlowVape/assets/new/targetplayers2.png'] = 'rbxassetid://14497397862',
 	['FlowVape/assets/new/targetstab.png'] = 'rbxassetid://14497393895',
 	['FlowVape/assets/new/textguiicon.png'] = 'rbxassetid://14368355456',
-	['FlowVape/assets/new/textv4.png'] = 'rbxassetid://14368357095',
-	['FlowVape/assets/new/textvape.png'] = 'rbxassetid://14368358200',
+	['FlowVape/assets/new/textv4.png'] = 'rbxassetid://79794409948544',
+	['FlowVape/assets/new/textvape.png'] = 'rbxassetid://100582785474625',
 	['FlowVape/assets/new/utilityicon.png'] = 'rbxassetid://14368359107',
 	['FlowVape/assets/new/vape.png'] = 'rbxassetid://14373395239',
 	['FlowVape/assets/new/warning.png'] = 'rbxassetid://14368361552',
@@ -327,11 +327,7 @@ local function downloadFile(path, func)
 	return (func or readfile)(path)
 end
 
-getcustomasset = not inputService.TouchEnabled and assetfunction and function(path)
-	return downloadFile(path, assetfunction)
-end or function(path)
-	return getcustomassets[path] or ''
-end
+getcustomasset = function(path) return getcustomassets[path] or '' end
 
 local function getTableSize(tab)
 	local ind = 0
