@@ -329,12 +329,13 @@ local function downloadAssets()
         makefolder('FlowVape/assets/new')
     end
 
-    -- Hardcoded filenames for the watermark images
     local assets = {
         'textv4.png',
         'guiv4.png',
         'textvape.png',
-        'guivape.png'
+        'guivape.png',
+        'FlowVape.png',
+        'FlowVapeText.png'
     }
 
     for _, asset in ipairs(assets) do
@@ -343,7 +344,10 @@ local function downloadAssets()
 end
 
 local function downloadGuis()
+    -- Download the custom GUI file
     downloadFile(BASE..'guis/new.lua', 'FlowVape/guis/new.lua')
+    -- ALSO save it as customgui.lua because Vape's main.lua usually looks for this specific filename to load custom watermarks
+    downloadFile(BASE..'guis/new.lua', 'FlowVape/guis/customgui.lua')
 end
 
 local function load(isMobile)
