@@ -4437,7 +4437,7 @@ function mainapi:CreateCategoryList(categorysettings)
 		for i, v in (categorysettings.Profiles and mainapi.Profiles or self.List) do
 			if categorysettings.Profiles then
 				local object = Instance.new('TextButton')
-				object.Name = v.Name
+				object.Name = type(v) == 'table' and v.Name or tostring(v)
 				object.Size = UDim2.fromOffset(200, 33)
 				object.BackgroundColor3 = color.Light(uipallet.Main, 0.02)
 				object.AutoButtonColor = false
