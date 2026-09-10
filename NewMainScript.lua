@@ -237,7 +237,7 @@ local function wipeFolder(path)
 end
 
 local function setupFolders()
-	for _, folder in {'FlowVape', 'FlowVape/games', 'FlowVape/profiles', 'FlowVape/assets', 'FlowVape/libraries', 'FlowVape/guis'} do
+	for _, folder in {'FlowVape', 'FlowVape/games', 'FlowVape/profiles', 'FlowVape/assets', 'FlowVape/libraries', 'FlowVape/profilesmobile', 'FlowVape/guis'} do
 		if not isfolder(folder) then
 			makefolder(folder)
 		end
