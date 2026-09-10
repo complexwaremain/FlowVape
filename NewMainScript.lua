@@ -329,32 +329,16 @@ local function downloadAssets()
         makefolder('FlowVape/assets/new')
     end
 
-    local ok, response = pcall(function()
-        return game:HttpGet('https://api.github.com/repos/complexwaremain/FlowVape/contents/assets/new?ref=main')
-    end)
-    if not ok or not response then return end
+    -- Hardcoded filenames for the watermark images
+    local assets = {
+        'textv4.png',
+        'guiv4.png',
+        'textvape.png',
+        'guivape.png'
+    }
 
-    local files = {}
-    local decOk, decoded = pcall(function()
-        return httpService:JSONDecode(response)
-    end)
-
-    if decOk and type(decoded) == 'table' then
-        for _, f in ipairs(decoded) do
-            if f.type == 'file' and f.name and f.download_url then
-                table.insert(files, {name = f.name, url = f.download_url})
-            end
-        end
-    else
-        for name, url in response:gmatch('"name":"([^"]+)".-?"download_url":"([^"]+)"') do
-            if url:match('raw%.githubusercontent') or url:match('github%.com') then
-                table.insert(files, {name = name, url = url})
-            end
-        end
-    end
-
-    for _, f in ipairs(files) do
-        downloadFile(f.url, 'FlowVape/assets/new/'..f.name)
+    for _, asset in ipairs(assets) do
+        downloadFile(BASE..'assets/new/'..asset, 'FlowVape/assets/new/'..asset)
     end
 end
 
