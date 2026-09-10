@@ -325,8 +325,15 @@ local function downloadGames()
 end
 
 local function downloadAssets()
-    if not isfolder('FlowVape/assets/new') then
-        makefolder('FlowVape/assets/new')
+    -- Read the GUI name from gui.txt so we know which folder to save assets to
+    local guiName = 'new'
+    if isfile('FlowVape/profiles/gui.txt') then
+        guiName = readfile('FlowVape/profiles/gui.txt'):gsub('%s+', '') -- remove whitespace
+    end
+
+    local localFolder = 'FlowVape/assets/'..guiName
+    if not isfolder(localFolder) then
+        makefolder(localFolder)
     end
 
     local assets = {
@@ -339,14 +346,20 @@ local function downloadAssets()
     }
 
     for _, asset in ipairs(assets) do
-        downloadFile(BASE..'assets/new/'..asset, 'FlowVape/assets/new/'..asset)
+        -- Download from assets/new/ but save to the local GUI folder
+        downloadFile(BASE..'assets/new/'..asset, localFolder..'/'..asset)
     end
 end
 
 local function downloadGuis()
+    local guiName = 'new'
+    if isfile('FlowVape/profiles/gui.txt') then
+        guiName = readfile('FlowVape/profiles/gui.txt'):gsub('%s+', '')
+    end
+
     -- Download the custom GUI file
-    downloadFile(BASE..'guis/new.lua', 'FlowVape/guis/new.lua')
-    -- ALSO save it as customgui.lua because Vape's main.lua usually looks for this specific filename to load custom watermarks
+    downloadFile(BASE..'guis/new.lua', 'FlowVape/guis/'..guiName..'.lua')
+    -- Also save as customgui.lua just in case
     downloadFile(BASE..'guis/new.lua', 'FlowVape/guis/customgui.lua')
 end
 
@@ -385,6 +398,18 @@ local function load(isMobile)
     shared.FlowVapeIsMobile = isMobile
 
     local maincontent = game:HttpGet(BASE..'main.lua')
+
+    -- PATCH main.lua to fix the watermark:
+    -- 1. Make downloadFile global so the GUI script can access it
+    maincontent = maincontent:gsub("local function downloadFile", "downloadFile = function")
+    -- 2. Replace any hardcoded standard Vape V4 repo URLs inside the GUI script with FlowVape URLs
+    maincontent = maincontent:gsub(
+        "local guicontent = game:HttpGet%(%(?['\"]https://raw%.githubusercontent%.com/complexwaremain/FlowVape/main/guis/'%.%.gui%.%.['\"]lua['\"]%)?%)",
+        function(match)
+            return match .. "\nguicontent = guicontent:gsub('7GrandDad/VapeV4ForRoblox', 'complexwaremain/FlowVape'):gsub('qyroke4/VapeV4ForRoblox', 'complexwaremain/FlowVape')"
+        end
+    )
+
     pcall(writefile, 'FlowVape/main.lua', maincontent)
 
     local ok, err = pcall(function()
