@@ -358,6 +358,10 @@ local function downloadAssets()
     end
 end
 
+local function downloadGuis()
+    downloadFile(BASE..'guis/new.lua', 'FlowVape/guis/new.lua')
+end
+
 local function load(isMobile)
     pcBtn.Active = false
     mobBtn.Active = false
@@ -382,6 +386,10 @@ local function load(isMobile)
     statusLabel.Text = 'Downloading assets...'
     task.wait(0.1)
     downloadAssets()
+
+    statusLabel.Text = 'Downloading guis...'
+    task.wait(0.1)
+    downloadGuis()
 
     statusLabel.Text = 'Loading FlowVape...'
     task.wait(0.2)
