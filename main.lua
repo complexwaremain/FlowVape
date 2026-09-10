@@ -44,8 +44,14 @@ local function downloadFile(path, func)
 end
 
 local ALL_PROFILES = {
-	['6872274481'] = {'default6872274481', 'Legit6872274481', 'Blatant6872274481'},
-	['6872265039'] = {'default6872265039', 'Legit6872265039', 'Blatant6872265039'},
+	['6872274481'] = {
+		{Name = 'Legit',   File = 'Legit6872274481'},
+		{Name = 'Blatant', File = 'Blatant6872274481'},
+	},
+	['6872265039'] = {
+		{Name = 'Legit',   File = 'Legit6872265039'},
+		{Name = 'Blatant', File = 'Blatant6872265039'},
+	},
 }
 
 local function injectProfiles()
@@ -53,19 +59,19 @@ local function injectProfiles()
 	local profiles = ALL_PROFILES[placeId]
 	if not profiles then return end
 	for i = 1, #profiles do
-		local profileName = profiles[i]
-		if profileName and type(profileName) == 'string' then
+		local entry = profiles[i]
+		if entry and entry.Name and entry.File then
 			local alreadyExists = false
 			for j = 1, #vape.Profiles do
 				local existing = vape.Profiles[j]
 				local existingName = type(existing) == 'table' and existing.Name or tostring(existing)
-				if existingName == profileName then
+				if existingName == entry.Name then
 					alreadyExists = true
 					break
 				end
 			end
 			if not alreadyExists then
-				table.insert(vape.Profiles, {Name = profileName, Bind = {}})
+				table.insert(vape.Profiles, {Name = entry.Name, Bind = {}, File = entry.File})
 			end
 		end
 	end
