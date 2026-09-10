@@ -18,7 +18,7 @@ local function wipeFolder(path)
 	end
 end
 
-for _, folder in {'FlowVape', 'FlowVape/games', 'FlowVape/profiles', 'FlowVape/assets', 'FlowVape/libraries', 'FlowVape/guis'} do
+	for _, folder in {'FlowVape', 'FlowVape/games', 'FlowVape/profiles', 'FlowVape/assets', 'FlowVape/libraries', 'FlowVape/profilesmobile', 'FlowVape/guis'} do
 	if not isfolder(folder) then
 		pcall(makefolder, folder)
 	end
