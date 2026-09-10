@@ -27,21 +27,7 @@ local cloneref = cloneref or function(obj)
 end
 local playersService = cloneref(game:GetService('Players'))
 
-local function downloadFile(path, func)
-	if not isfile(path) then
-		local suc, res = pcall(function()
-			return game:HttpGet('https://raw.githubusercontent.com/complexwaremain/FlowVape/main/'..select(1, path:gsub('FlowVape/', '')), true)
-		end)
-		if not suc or res == '404: Not Found' then
-			error(res)
-		end
-		if path:find('.lua') then
-			res = '--This watermark is used to delete the file if its cached, remove it to make the file persist after vape updates.\n'..res
-		end
-		writefile(path, res)
-	end
-	return (func or readfile)(path)
-end
+local isMobile = shared.FlowVapeIsMobile == true
 
 local ALL_PROFILES = {
 	['6872274481'] = {
@@ -60,7 +46,7 @@ local function injectProfiles()
 	if not profiles then return end
 	for i = 1, #profiles do
 		local entry = profiles[i]
-		if entry and entry.Name and entry.File then
+		if entry and entry.Name and type(entry.Name) == 'string' then
 			local alreadyExists = false
 			for j = 1, #vape.Profiles do
 				local existing = vape.Profiles[j]
@@ -71,13 +57,29 @@ local function injectProfiles()
 				end
 			end
 			if not alreadyExists then
-				table.insert(vape.Profiles, {Name = entry.Name, Bind = {}, File = entry.File})
+				table.insert(vape.Profiles, {Name = entry.Name, Bind = {}})
 			end
 		end
 	end
 	pcall(function()
 		vape.Categories.Profiles:ChangeValue()
 	end)
+end
+
+local function downloadFile(path, func)
+	if not isfile(path) then
+		local suc, res = pcall(function()
+			return game:HttpGet('https://raw.githubusercontent.com/complexwaremain/FlowVape/main/'..select(1, path:gsub('FlowVape/', '')), true)
+		end)
+		if not suc or res == '404: Not Found' then
+			error(res)
+		end
+		if path:find('.lua') then
+			res = '--This watermark is used to delete the file if its cached, remove it to make the file persist after vape updates.\n'..res
+		end
+		writefile(path, res)
+	end
+	return (func or readfile)(path)
 end
 
 local function finishLoading()
