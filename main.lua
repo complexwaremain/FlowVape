@@ -56,11 +56,8 @@ local function injectProfiles()
 		'Blatant'..placeId,
 	}
 	for _, profileName in profiles do
-		local profilePath = 'FlowVape/profiles/'..profileName..'.txt'
-		if isfile(profilePath) then
-			if not table.find(vape.Profiles, profileName) then
-				table.insert(vape.Profiles, profileName)
-			end
+		if not table.find(vape.Profiles, profileName) then
+			table.insert(vape.Profiles, profileName)
 		end
 	end
 end
