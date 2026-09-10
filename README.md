@@ -9,7 +9,9 @@ This project is for educational purposes only. Using exploits in Roblox violates
 🙏 Credits
 
 Original Vape V4 development team.
+
 The FlowVape maintainers for customizations, UI, and asset handling, (Complexware, Fanware)
+
 Dev, Bug Fixer, (Jayz)
 
 🚀 Installation
