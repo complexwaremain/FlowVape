@@ -121,7 +121,6 @@ local function makeBtn(name, desc, icon, xOffset, accentColor)
 	local s = Instance.new('UIStroke', btn)
 	s.Color = Color3.fromRGB(40, 38, 44)
 	s.Thickness = 1
-
 	local accent = Instance.new('Frame')
 	accent.Size = UDim2.new(1, 0, 0, 2)
 	accent.Position = UDim2.new(0, 0, 1, -2)
@@ -129,7 +128,6 @@ local function makeBtn(name, desc, icon, xOffset, accentColor)
 	accent.BorderSizePixel = 0
 	accent.Parent = btn
 	Instance.new('UICorner', accent).CornerRadius = UDim.new(0, 10)
-
 	local ic = Instance.new('TextLabel')
 	ic.Size = UDim2.new(1, 0, 0, 36)
 	ic.Position = UDim2.fromOffset(0, 10)
@@ -138,7 +136,6 @@ local function makeBtn(name, desc, icon, xOffset, accentColor)
 	ic.TextSize = 28
 	ic.Font = Enum.Font.Gotham
 	ic.Parent = btn
-
 	local nl = Instance.new('TextLabel')
 	nl.Size = UDim2.new(1, 0, 0, 18)
 	nl.Position = UDim2.fromOffset(0, 50)
@@ -148,7 +145,6 @@ local function makeBtn(name, desc, icon, xOffset, accentColor)
 	nl.TextSize = 13
 	nl.Font = Enum.Font.GothamSemibold
 	nl.Parent = btn
-
 	local dl = Instance.new('TextLabel')
 	dl.Size = UDim2.new(1, 0, 0, 14)
 	dl.Position = UDim2.fromOffset(0, 68)
@@ -158,7 +154,6 @@ local function makeBtn(name, desc, icon, xOffset, accentColor)
 	dl.TextSize = 10
 	dl.Font = Enum.Font.Gotham
 	dl.Parent = btn
-
 	btn.MouseEnter:Connect(function()
 		tweenService:Create(btn, TweenInfo.new(0.12), {BackgroundColor3 = Color3.fromRGB(28, 27, 31)}):Play()
 		tweenService:Create(s, TweenInfo.new(0.12), {Color = accentColor}):Play()
@@ -170,8 +165,8 @@ local function makeBtn(name, desc, icon, xOffset, accentColor)
 	return btn, s
 end
 
-local pcBtn, pcStroke = makeBtn('PC', 'Windows / Mac', '🖥️', 14, Color3.fromRGB(96, 165, 250))
-local mobBtn, mobStroke = makeBtn('Mobile', 'iOS / Android', '📱', 148, Color3.fromRGB(74, 222, 128))
+local pcBtn, pcStroke = makeBtn('PC', 'Windows / Mac', 'PC', 14, Color3.fromRGB(96, 165, 250))
+local mobBtn, mobStroke = makeBtn('Mobile', 'iOS / Android', 'MOB', 148, Color3.fromRGB(74, 222, 128))
 
 local statusLabel = Instance.new('TextLabel')
 statusLabel.Size = UDim2.new(1, -28, 0, 16)
@@ -188,7 +183,7 @@ local verLabel = Instance.new('TextLabel')
 verLabel.Size = UDim2.new(1, 0, 0, 14)
 verLabel.Position = UDim2.fromOffset(0, 148)
 verLabel.BackgroundTransparency = 1
-verLabel.Text = 'v1.0 · FlowVape'
+verLabel.Text = 'v1.0 - FlowVape'
 verLabel.TextColor3 = Color3.fromRGB(60, 58, 65)
 verLabel.TextSize = 10
 verLabel.Font = Enum.Font.Gotham
@@ -237,7 +232,7 @@ local function wipeFolder(path)
 end
 
 local function setupFolders()
-	for _, folder in {'FlowVape', 'FlowVape/games', 'FlowVape/profiles', 'FlowVape/assets', 'FlowVape/libraries', 'FlowVape/profilesmobile', 'FlowVape/guis'} do
+	for _, folder in {'FlowVape', 'FlowVape/games', 'FlowVape/profiles', 'FlowVape/profilesmobile', 'FlowVape/assets', 'FlowVape/libraries', 'FlowVape/guis'} do
 		if not isfolder(folder) then
 			makefolder(folder)
 		end
@@ -258,23 +253,41 @@ local function handleCommit()
 		wipeFolder('FlowVape/guis')
 		wipeFolder('FlowVape/libraries')
 		wipeFolder('FlowVape/profiles')
+		wipeFolder('FlowVape/profilesmobile')
 	end
 	pcall(writefile, 'FlowVape/profiles/commit.txt', commit)
 end
 
-local function downloadProfiles(profileList)
-	local PBASE = BASE..'profiles/'
+local PC_PROFILES = {
+	{Name = 'Legit',   File = 'legit6872274481.txt',   PlaceId = '6872274481'},
+	{Name = 'Blatant', File = 'blatant6872274481.txt',  PlaceId = '6872274481'},
+	{Name = 'Legit',   File = 'legit6872265039.txt',   PlaceId = '6872265039'},
+	{Name = 'Blatant', File = 'blatant6872265039.txt',  PlaceId = '6872265039'},
+}
+
+local MOB_PROFILES = {
+	{Name = 'Legit',   File = 'legitMob6872274481.txt',   PlaceId = '6872274481'},
+	{Name = 'Blatant', File = 'blatantMob6872274481.txt',  PlaceId = '6872274481'},
+	{Name = 'Legit',   File = 'legitMob6872265039.txt',   PlaceId = '6872265039'},
+	{Name = 'Blatant', File = 'blatantMob6872265039.txt',  PlaceId = '6872265039'},
+}
+
+local function downloadProfiles(profileList, remoteFolder, localFolder)
+	local PBASE = BASE..remoteFolder..'/'
 	local sharedFiles = {'gui.txt', 'commit.txt', '2619619496gui.txt', 'default6872274481.txt', 'default6872265039.txt'}
 	for i = 1, #sharedFiles do
-		local ok, data = pcall(function() return game:HttpGet(PBASE..sharedFiles[i]) end)
+		local ok, data = pcall(function() return game:HttpGet(BASE..'profiles/'..sharedFiles[i]) end)
 		if ok and data and data ~= '404: Not Found' then
 			pcall(writefile, 'FlowVape/profiles/'..sharedFiles[i], data)
 		end
 	end
 	for i = 1, #profileList do
-		local ok, data = pcall(function() return game:HttpGet(PBASE..profileList[i]) end)
+		local entry = profileList[i]
+		local ok, data = pcall(function() return game:HttpGet(PBASE..entry.File) end)
 		if ok and data and data ~= '404: Not Found' then
-			pcall(writefile, 'FlowVape/profiles/'..profileList[i], data)
+			local diskName = entry.Name..entry.PlaceId..'.txt'
+			pcall(writefile, 'FlowVape/'..localFolder..'/'..diskName, data)
+			pcall(writefile, 'FlowVape/profiles/'..diskName, data)
 		end
 	end
 end
@@ -305,30 +318,20 @@ local function load(isMobile)
 	statusLabel.Text = 'Downloading profiles...'
 	task.wait(0.1)
 
-	local profiles
 	if isMobile then
-		profiles = {
-			'blatantMob6872274481.txt',
-			'blatantMob6872265039.txt',
-			'legitMob6872274481.txt',
-			'legitMob6872265039.txt',
-		}
+		downloadProfiles(MOB_PROFILES, 'profilesmobile', 'profilesmobile')
 	else
-		profiles = {
-			'blatant6872274481.txt',
-			'blatant6872265039.txt',
-			'legit6872274481.txt',
-			'legit6872265039.txt',
-		}
+		downloadProfiles(PC_PROFILES, 'profiles', 'profiles')
 	end
 
-	downloadProfiles(profiles)
 	statusLabel.Text = 'Downloading game scripts...'
 	task.wait(0.1)
 
 	downloadGames()
 	statusLabel.Text = 'Loading FlowVape...'
 	task.wait(0.2)
+
+	shared.FlowVapeIsMobile = isMobile
 
 	local maincontent = game:HttpGet(BASE..'main.lua')
 	pcall(writefile, 'FlowVape/main.lua', maincontent)
@@ -345,7 +348,7 @@ local function load(isMobile)
 		sg:Destroy()
 		task.wait(0.3)
 		if shared.vape then
-			shared.vape:CreateNotification('FlowVape', 'Loaded — thanks for using FlowVape!', 2)
+			shared.vape:CreateNotification('FlowVape', 'Loaded - thanks for using FlowVape!', 2)
 		end
 	else
 		statusLabel.Text = 'Error: '..tostring(err):sub(1, 50)
