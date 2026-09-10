@@ -258,76 +258,78 @@ local function handleCommit()
 	pcall(writefile, 'FlowVape/profiles/commit.txt', commit)
 end
 
+local SHARED_FILES = {
+	'gui.txt',
+	'commit.txt',
+	'2619619496.gui.txt',
+	'default6872274481.txt',
+	'default6872265039.txt',
+}
+
 local PC_PROFILES = {
-	{Name = 'Legit',   File = 'legit6872274481.txt',   PlaceId = '6872274481'},
-	{Name = 'Blatant', File = 'blatant6872274481.txt',  PlaceId = '6872274481'},
-	{Name = 'Legit',   File = 'legit6872265039.txt',   PlaceId = '6872265039'},
-	{Name = 'Blatant', File = 'blatant6872265039.txt',  PlaceId = '6872265039'},
+	'legit6872274481.txt',
+	'blatant6872274481.txt',
+	'legit6872265039.txt',
+	'blatant6872265039.txt',
 }
 
 local MOB_PROFILES = {
-	{Name = 'Legit',   File = 'legitMob6872274481.txt',   PlaceId = '6872274481'},
-	{Name = 'Blatant', File = 'blatantMob6872274481.txt',  PlaceId = '6872274481'},
-	{Name = 'Legit',   File = 'legitMob6872265039.txt',   PlaceId = '6872265039'},
-	{Name = 'Blatant', File = 'blatantMob6872265039.txt',  PlaceId = '6872265039'},
+	'legitMob6872274481.txt',
+	'blatantMob6872274481.txt',
+	'legitMob6872265039.txt',
+	'blatantMob6872265039.txt',
 }
 
-local function downloadProfiles(profileList, remoteFolder, localFolder)
-	local PBASE = BASE..remoteFolder..'/'
-	local sharedFiles = {'gui.txt', 'commit.txt', '2619619496gui.txt', 'default6872274481.txt', 'default6872265039.txt'}
-	for i = 1, #sharedFiles do
-		local ok, data = pcall(function() return game:HttpGet(BASE..'profiles/'..sharedFiles[i]) end)
-		if ok and data and data ~= '404: Not Found' then
-			pcall(writefile, 'FlowVape/profiles/'..sharedFiles[i], data)
-		end
+local function downloadFile(url, dest)
+	local ok, data = pcall(function() return game:HttpGet(url) end)
+	if ok and data and data ~= '404: Not Found' then
+		pcall(writefile, dest, data)
 	end
+end
+
+local function downloadProfiles(isMobile)
+	local remoteFolder = isMobile and 'profilesmobile' or 'profiles'
+	local profileList = isMobile and MOB_PROFILES or PC_PROFILES
+
+	for i = 1, #SHARED_FILES do
+		local filename = SHARED_FILES[i]
+		downloadFile(BASE..'profiles/'..filename, 'FlowVape/profiles/'..filename)
+	end
+
 	for i = 1, #profileList do
-		local entry = profileList[i]
-		local ok, data = pcall(function() return game:HttpGet(PBASE..entry.File) end)
-		if ok and data and data ~= '404: Not Found' then
-			local diskName = entry.Name..entry.PlaceId..'.txt'
-			pcall(writefile, 'FlowVape/'..localFolder..'/'..diskName, data)
-			pcall(writefile, 'FlowVape/profiles/'..diskName, data)
-		end
+		local filename = profileList[i]
+		downloadFile(BASE..remoteFolder..'/'..filename, 'FlowVape/profiles/'..filename)
 	end
 end
 
 local function downloadGames()
-	local GBASE = BASE..'games/'
 	local gameFiles = {'6872274481.lua', '6872265039.lua'}
 	for i = 1, #gameFiles do
-		local ok, data = pcall(function() return game:HttpGet(GBASE..gameFiles[i]) end)
-		if ok and data and data ~= '404: Not Found' then
-			pcall(writefile, 'FlowVape/games/'..gameFiles[i], data)
-		end
+		downloadFile(BASE..'games/'..gameFiles[i], 'FlowVape/games/'..gameFiles[i])
 	end
 end
 
 local function load(isMobile)
 	pcBtn.Active = false
 	mobBtn.Active = false
+
 	statusLabel.Text = 'Setting up folders...'
 	statusLabel.TextColor3 = Color3.fromRGB(120, 118, 125)
 	task.wait(0.2)
-
 	setupFolders()
+
 	statusLabel.Text = 'Checking for updates...'
 	task.wait(0.2)
-
 	handleCommit()
+
 	statusLabel.Text = 'Downloading profiles...'
 	task.wait(0.1)
-
-	if isMobile then
-		downloadProfiles(MOB_PROFILES, 'profilesmobile', 'profilesmobile')
-	else
-		downloadProfiles(PC_PROFILES, 'profiles', 'profiles')
-	end
+	downloadProfiles(isMobile)
 
 	statusLabel.Text = 'Downloading game scripts...'
 	task.wait(0.1)
-
 	downloadGames()
+
 	statusLabel.Text = 'Loading FlowVape...'
 	task.wait(0.2)
 
