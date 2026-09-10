@@ -55,11 +55,23 @@ local function injectProfiles()
 	for i = 1, #profiles do
 		local profileName = profiles[i]
 		if profileName and type(profileName) == 'string' then
-			if not table.find(vape.Profiles, profileName) then
-				table.insert(vape.Profiles, profileName)
+			local alreadyExists = false
+			for j = 1, #vape.Profiles do
+				local existing = vape.Profiles[j]
+				local existingName = type(existing) == 'table' and existing.Name or tostring(existing)
+				if existingName == profileName then
+					alreadyExists = true
+					break
+				end
+			end
+			if not alreadyExists then
+				table.insert(vape.Profiles, {Name = profileName, Bind = {}})
 			end
 		end
 	end
+	pcall(function()
+		vape.Categories.Profiles:ChangeValue()
+	end)
 end
 
 local function finishLoading()
