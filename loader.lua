@@ -9,7 +9,6 @@ local delfile = delfile or function(file)
 end
 
 local BASE = 'https://raw.githubusercontent.com/complexwaremain/FlowVape/main/'
-local httpService = game:GetService('HttpService')
 
 local function wipeFolder(path)
     if not isfolder(path) then return end
@@ -55,6 +54,28 @@ if not shared.VapeDeveloper then
     pcall(writefile, 'FlowVape/profiles/commit.txt', commit)
 end
 
+local SHARED_FILES = {
+    'gui.txt',
+    'commit.txt',
+    '2619619496.gui.txt',
+    'default6872274481.txt',
+    'default6872265039.txt',
+}
+
+local PC_PROFILES = {
+    'legit6872274481.txt',
+    'blatant6872274481.txt',
+    'legit6872265039.txt',
+    'blatant6872265039.txt',
+}
+
+local MOB_PROFILES = {
+    'legitMob6872274481.txt',
+    'blatantMob6872274481.txt',
+    'legitMob6872265039.txt',
+    'blatantMob6872265039.txt',
+}
+
 local function dlFile(url, dest)
     local ok, data = pcall(function() return game:HttpGet(url) end)
     if ok and data and data ~= '404: Not Found' then
@@ -63,37 +84,17 @@ local function dlFile(url, dest)
 end
 
 local function downloadProfiles(isMobile)
-    local ok1, res1 = pcall(function()
-        return game:HttpGet('https://api.github.com/repos/complexwaremain/FlowVape/contents/profiles?ref=main')
-    end)
-    if ok1 and res1 then
-        local decOk, decoded = pcall(function()
-            return httpService:JSONDecode(res1)
-        end)
-        if decOk and type(decoded) == 'table' then
-            for _, f in ipairs(decoded) do
-                if f.type == 'file' and f.name and f.download_url then
-                    dlFile(f.download_url, 'FlowVape/profiles/'..f.name)
-                end
-            end
-        end
+    for i = 1, #SHARED_FILES do
+        dlFile(BASE..'profiles/'..SHARED_FILES[i], 'FlowVape/profiles/'..SHARED_FILES[i])
     end
 
     if isMobile then
-        local ok2, res2 = pcall(function()
-            return game:HttpGet('https://api.github.com/repos/complexwaremain/FlowVape/contents/profilesmobile?ref=main')
-        end)
-        if ok2 and res2 then
-            local decOk, decoded = pcall(function()
-                return httpService:JSONDecode(res2)
-            end)
-            if decOk and type(decoded) == 'table' then
-                for _, f in ipairs(decoded) do
-                    if f.type == 'file' and f.name and f.download_url then
-                        dlFile(f.download_url, 'FlowVape/profiles/'..f.name)
-                    end
-                end
-            end
+        for i = 1, #MOB_PROFILES do
+            dlFile(BASE..'profilesmobile/'..MOB_PROFILES[i], 'FlowVape/profiles/'..MOB_PROFILES[i])
+        end
+    else
+        for i = 1, #PC_PROFILES do
+            dlFile(BASE..'profiles/'..PC_PROFILES[i], 'FlowVape/profiles/'..PC_PROFILES[i])
         end
     end
 end
