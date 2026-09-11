@@ -17,6 +17,7 @@ local delfile = delfile or function(file)
 end
 
 local BASE = 'https://raw.githubusercontent.com/complexwaremain/FlowVape/main/'
+local scale = math.clamp(workspace.CurrentCamera.ViewportSize.Y / 800, 0.75, 1.8)
 
 local function wipeFolder(path)
     if not isfolder(path) then return end
@@ -220,23 +221,23 @@ sg.Parent = playerGui
 
 local card = Instance.new('Frame')
 card.Name = 'Card'
-card.Size = UDim2.fromOffset(280, 210)
+card.Size = UDim2.fromOffset(280 * scale, 240 * scale)
 card.Position = UDim2.fromScale(0.5, 0.5)
 card.AnchorPoint = Vector2.new(0.5, 0.5)
 card.BackgroundColor3 = Color3.fromRGB(18, 17, 19)
 card.BorderSizePixel = 0
 card.Parent = sg
-Instance.new('UICorner', card).CornerRadius = UDim.new(0, 14)
+Instance.new('UICorner', card).CornerRadius = UDim.new(0, 14 * scale)
 local cardStroke = Instance.new('UIStroke', card)
 cardStroke.Color = Color3.fromRGB(45, 43, 48)
 cardStroke.Thickness = 1
 
 local topbar = Instance.new('Frame')
-topbar.Size = UDim2.new(1, 0, 0, 38)
+topbar.Size = UDim2.new(1, 0, 0, 38 * scale)
 topbar.BackgroundColor3 = Color3.fromRGB(13, 12, 14)
 topbar.BorderSizePixel = 0
 topbar.Parent = card
-Instance.new('UICorner', topbar).CornerRadius = UDim.new(0, 14)
+Instance.new('UICorner', topbar).CornerRadius = UDim.new(0, 14 * scale)
 local tbFix = Instance.new('Frame')
 tbFix.Size = UDim2.new(1, 0, 0.5, 0)
 tbFix.Position = UDim2.fromScale(0, 0.5)
@@ -249,13 +250,13 @@ titleLabel.Size = UDim2.new(1, 0, 1, 0)
 titleLabel.BackgroundTransparency = 1
 titleLabel.Text = 'FlowVape'
 titleLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-titleLabel.TextSize = 13
+titleLabel.TextSize = 13 * scale
 titleLabel.Font = Enum.Font.GothamBold
 titleLabel.Parent = topbar
 
 local dot = Instance.new('Frame')
-dot.Size = UDim2.fromOffset(10, 10)
-dot.Position = UDim2.new(1, -14, 0.5, 0)
+dot.Size = UDim2.fromOffset(10 * scale, 10 * scale)
+dot.Position = UDim2.new(1, -14 * scale, 0.5, 0)
 dot.AnchorPoint = Vector2.new(1, 0.5)
 dot.BackgroundColor3 = Color3.fromRGB(55, 53, 58)
 dot.BorderSizePixel = 0
@@ -263,8 +264,8 @@ dot.Parent = topbar
 Instance.new('UICorner', dot).CornerRadius = UDim.new(1, 0)
 
 local rainbow = Instance.new('Frame')
-rainbow.Size = UDim2.new(1, 0, 0, 2)
-rainbow.Position = UDim2.new(0, 0, 1, -2)
+rainbow.Size = UDim2.new(1, 0, 0, 2 * scale)
+rainbow.Position = UDim2.new(0, 0, 1, -2 * scale)
 rainbow.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
 rainbow.BorderSizePixel = 0
 rainbow.Parent = topbar
@@ -277,75 +278,75 @@ grad.Color = ColorSequence.new({
 })
 
 local body = Instance.new('Frame')
-body.Size = UDim2.new(1, 0, 1, -38)
-body.Position = UDim2.fromOffset(0, 38)
+body.Size = UDim2.new(1, 0, 1, -38 * scale)
+body.Position = UDim2.fromOffset(0, 38 * scale)
 body.BackgroundTransparency = 1
 body.Parent = card
 
 local mainTitle = Instance.new('TextLabel')
-mainTitle.Size = UDim2.new(1, 0, 0, 24)
-mainTitle.Position = UDim2.fromOffset(0, 14)
+mainTitle.Size = UDim2.new(1, 0, 0, 24 * scale)
+mainTitle.Position = UDim2.fromOffset(0, 14 * scale)
 mainTitle.BackgroundTransparency = 1
 mainTitle.Text = 'Choose your device'
 mainTitle.TextColor3 = Color3.fromRGB(210, 210, 210)
-mainTitle.TextSize = 14
+mainTitle.TextSize = 14 * scale
 mainTitle.Font = Enum.Font.GothamSemibold
 mainTitle.Parent = body
 
 local subTitle = Instance.new('TextLabel')
-subTitle.Size = UDim2.new(1, 0, 0, 18)
-subTitle.Position = UDim2.fromOffset(0, 36)
+subTitle.Size = UDim2.new(1, 0, 0, 18 * scale)
+subTitle.Position = UDim2.fromOffset(0, 36 * scale)
 subTitle.BackgroundTransparency = 1
 subTitle.Text = 'Select the platform you are on'
 subTitle.TextColor3 = Color3.fromRGB(100, 98, 105)
-subTitle.TextSize = 11
+subTitle.TextSize = 11 * scale
 subTitle.Font = Enum.Font.Gotham
 subTitle.Parent = body
 
 local function makeBtn(name, desc, icon, xOffset, accentColor)
     local btn = Instance.new('TextButton')
-    btn.Size = UDim2.fromOffset(118, 90)
-    btn.Position = UDim2.fromOffset(xOffset, 62)
+    btn.Size = UDim2.fromOffset(118 * scale, 90 * scale)
+    btn.Position = UDim2.fromOffset(xOffset, 62 * scale)
     btn.BackgroundColor3 = Color3.fromRGB(23, 22, 25)
     btn.BorderSizePixel = 0
     btn.Text = ''
     btn.AutoButtonColor = false
     btn.Parent = body
-    Instance.new('UICorner', btn).CornerRadius = UDim.new(0, 10)
+    Instance.new('UICorner', btn).CornerRadius = UDim.new(0, 10 * scale)
     local s = Instance.new('UIStroke', btn)
     s.Color = Color3.fromRGB(40, 38, 44)
     s.Thickness = 1
     local accent = Instance.new('Frame')
-    accent.Size = UDim2.new(1, 0, 0, 2)
-    accent.Position = UDim2.new(0, 0, 1, -2)
+    accent.Size = UDim2.new(1, 0, 0, 2 * scale)
+    accent.Position = UDim2.new(0, 0, 1, -2 * scale)
     accent.BackgroundColor3 = accentColor
     accent.BorderSizePixel = 0
     accent.Parent = btn
-    Instance.new('UICorner', accent).CornerRadius = UDim.new(0, 10)
+    Instance.new('UICorner', accent).CornerRadius = UDim.new(0, 10 * scale)
     local ic = Instance.new('TextLabel')
-    ic.Size = UDim2.new(1, 0, 0, 36)
-    ic.Position = UDim2.fromOffset(0, 10)
+    ic.Size = UDim2.new(1, 0, 0, 36 * scale)
+    ic.Position = UDim2.fromOffset(0, 10 * scale)
     ic.BackgroundTransparency = 1
     ic.Text = icon
-    ic.TextSize = 28
+    ic.TextSize = 28 * scale
     ic.Font = Enum.Font.Gotham
     ic.Parent = btn
     local nl = Instance.new('TextLabel')
-    nl.Size = UDim2.new(1, 0, 0, 18)
-    nl.Position = UDim2.fromOffset(0, 50)
+    nl.Size = UDim2.new(1, 0, 0, 18 * scale)
+    nl.Position = UDim2.fromOffset(0, 50 * scale)
     nl.BackgroundTransparency = 1
     nl.Text = name
     nl.TextColor3 = Color3.fromRGB(200, 200, 200)
-    nl.TextSize = 13
+    nl.TextSize = 13 * scale
     nl.Font = Enum.Font.GothamSemibold
     nl.Parent = btn
     local dl = Instance.new('TextLabel')
-    dl.Size = UDim2.new(1, 0, 0, 14)
-    dl.Position = UDim2.fromOffset(0, 68)
+    dl.Size = UDim2.new(1, 0, 0, 14 * scale)
+    dl.Position = UDim2.fromOffset(0, 68 * scale)
     dl.BackgroundTransparency = 1
     dl.Text = desc
     dl.TextColor3 = Color3.fromRGB(90, 88, 95)
-    dl.TextSize = 10
+    dl.TextSize = 10 * scale
     dl.Font = Enum.Font.Gotham
     dl.Parent = btn
     btn.MouseEnter:Connect(function()
@@ -359,18 +360,19 @@ local function makeBtn(name, desc, icon, xOffset, accentColor)
     return btn, s
 end
 
-local pcBtn, pcStroke = makeBtn('PC', 'Windows / Mac', 'PC', 14, Color3.fromRGB(96, 165, 250))
-local mobBtn, mobStroke = makeBtn('Mobile', 'iOS / Android', 'MOB', 148, Color3.fromRGB(74, 222, 128))
+local pcBtn, pcStroke = makeBtn('PC', 'Windows / Mac', 'PC', 14 * scale, Color3.fromRGB(96, 165, 250))
+local mobBtn, mobStroke = makeBtn('Mobile', 'iOS / Android', 'MOB', 148 * scale, Color3.fromRGB(74, 222, 128))
 
 local statusLabel = Instance.new('TextLabel')
-statusLabel.Size = UDim2.new(1, -28, 0, 16)
-statusLabel.Position = UDim2.new(0, 14, 1, -30)
+statusLabel.Size = UDim2.new(1, -28 * scale, 0, 20 * scale)
+statusLabel.Position = UDim2.new(0, 14 * scale, 1, -30 * scale)
 statusLabel.BackgroundTransparency = 1
 statusLabel.Text = ''
 statusLabel.TextColor3 = Color3.fromRGB(120, 118, 125)
-statusLabel.TextSize = 11
+statusLabel.TextSize = 11 * scale
 statusLabel.Font = Enum.Font.Gotham
 statusLabel.TextXAlignment = Enum.TextXAlignment.Center
+statusLabel.TextYAlignment = Enum.TextYAlignment.Center
 statusLabel.Parent = body
 
 local hue = 0
