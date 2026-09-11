@@ -29,45 +29,30 @@ local playersService = cloneref(game:GetService('Players'))
 
 local isMobile = shared.FlowVapeIsMobile == true
 
-local SHARED_FILES = { 'gui.txt', 'commit.txt', '2619619496.gui.txt', 'default6872274481.txt', 'default6872265039.txt' }
-local PC_PROFILES = { 'legit6872274481.txt', 'blatant6872274481.txt', 'legit6872265039.txt', 'blatant6872265039.txt' }
-local MOB_PROFILES = { 'legitMob6872274481.txt', 'blatantMob6872274481.txt', 'legitMob6872265039.txt', 'blatantMob6872265039.txt' }
+local ALL_PROFILES = {
+    ['6872274481'] = {
+        {Name = 'Legit',   File = 'legit6872274481'},
+        {Name = 'Blatant', File = 'blatant6872274481'},
+        {Name = 'LegitMob',   File = 'legitMob6872274481'},
+        {Name = 'BlatantMob', File = 'blatantMob6872274481'},
+    },
+    ['6872265039'] = {
+        {Name = 'Legit',   File = 'legit6872265039'},
+        {Name = 'Blatant', File = 'blatant6872265039'},
+        {Name = 'LegitMob',   File = 'legitMob6872265039'},
+        {Name = 'BlatantMob', File = 'blatantMob6872265039'},
+    },
+}
 
 if listfiles then
     local oldListFiles = listfiles
     listfiles = function(path)
-        local files = oldListFiles(path)
         if typeof(path) == 'string' and path:lower():match('flowvape/profiles$') then
-            local filtered = {}
-            local allowed = {}
-            for _, f in ipairs(SHARED_FILES) do allowed[f] = true end
-            if isMobile then
-                for _, f in ipairs(MOB_PROFILES) do allowed[f] = true end
-            else
-                for _, f in ipairs(PC_PROFILES) do allowed[f] = true end
-            end
-            for _, file in ipairs(files) do
-                local fname = file:match('[^/\\]+$')
-                if not fname or allowed[fname] then
-                    table.insert(filtered, file)
-                end
-            end
-            return filtered
+            return {}
         end
-        return files
+        return oldListFiles(path)
     end
 end
-
-local ALL_PROFILES = {
-    ['6872274481'] = {
-        {Name = isMobile and 'LegitMob' or 'Legit',   File = isMobile and 'legitMob6872274481' or 'legit6872274481'},
-        {Name = isMobile and 'BlatantMob' or 'Blatant', File = isMobile and 'blatantMob6872274481' or 'blatant6872274481'},
-    },
-    ['6872265039'] = {
-        {Name = isMobile and 'LegitMob' or 'Legit',   File = isMobile and 'legitMob6872265039' or 'legit6872265039'},
-        {Name = isMobile and 'BlatantMob' or 'Blatant', File = isMobile and 'blatantMob6872265039' or 'blatant6872265039'},
-    },
-}
 
 local function injectProfiles()
     local placeId = tostring(game.PlaceId)
@@ -76,17 +61,20 @@ local function injectProfiles()
     for i = 1, #profiles do
         local entry = profiles[i]
         if entry and entry.Name and type(entry.Name) == 'string' then
-            local alreadyExists = false
-            for j = 1, #vape.Profiles do
-                local existing = vape.Profiles[j]
-                local existingName = type(existing) == 'table' and existing.Name or tostring(existing)
-                if existingName == entry.Name then
-                    alreadyExists = true
-                    break
+            local isMobProfile = entry.Name:find('Mob') ~= nil
+            if (isMobile and isMobProfile) or (not isMobile and not isMobProfile) then
+                local alreadyExists = false
+                for j = 1, #vape.Profiles do
+                    local existing = vape.Profiles[j]
+                    local existingName = type(existing) == 'table' and existing.Name or tostring(existing)
+                    if existingName == entry.Name then
+                        alreadyExists = true
+                        break
+                    end
                 end
-            end
-            if not alreadyExists then
-                table.insert(vape.Profiles, {Name = entry.Name, File = entry.File, Bind = {}})
+                if not alreadyExists then
+                    table.insert(vape.Profiles, {Name = entry.Name, File = entry.File, Bind = {}})
+                end
             end
         end
     end
