@@ -29,6 +29,35 @@ local playersService = cloneref(game:GetService('Players'))
 
 local isMobile = shared.FlowVapeIsMobile == true
 
+local SHARED_FILES = { 'gui.txt', 'commit.txt', '2619619496.gui.txt', 'default6872274481.txt', 'default6872265039.txt' }
+local PC_PROFILES = { 'legit6872274481.txt', 'blatant6872274481.txt', 'legit6872265039.txt', 'blatant6872265039.txt' }
+local MOB_PROFILES = { 'legitMob6872274481.txt', 'blatantMob6872274481.txt', 'legitMob6872265039.txt', 'blatantMob6872265039.txt' }
+
+if listfiles then
+    local oldListFiles = listfiles
+    listfiles = function(path)
+        local files = oldListFiles(path)
+        if typeof(path) == 'string' and path:lower():match('flowvape/profiles$') then
+            local filtered = {}
+            local allowed = {}
+            for _, f in ipairs(SHARED_FILES) do allowed[f] = true end
+            if isMobile then
+                for _, f in ipairs(MOB_PROFILES) do allowed[f] = true end
+            else
+                for _, f in ipairs(PC_PROFILES) do allowed[f] = true end
+            end
+            for _, file in ipairs(files) do
+                local fname = file:match('[^/\\]+$')
+                if not fname or allowed[fname] then
+                    table.insert(filtered, file)
+                end
+            end
+            return filtered
+        end
+        return files
+    end
+end
+
 local ALL_PROFILES = {
     ['6872274481'] = {
         {Name = isMobile and 'LegitMob' or 'Legit',   File = isMobile and 'legitMob6872274481' or 'legit6872274481'},
@@ -86,6 +115,29 @@ local function finishLoading()
     vape.Init = nil
     vape:Load()
     pcall(injectProfiles)
+
+    local lastProfileFile = 'FlowVape/profiles/lastprofile.txt'
+    
+    local oldLoadProfile = vape.LoadProfile
+    if oldLoadProfile then
+        vape.LoadProfile = function(self, name, ...)
+            pcall(writefile, lastProfileFile, tostring(name))
+            return oldLoadProfile(self, name, ...)
+        end
+    end
+
+    local lastProfile = isfile(lastProfileFile) and readfile(lastProfileFile) or nil
+    if lastProfile and lastProfile ~= '' then
+        task.spawn(function()
+            task.wait(1)
+            pcall(function()
+                if vape.LoadProfile then
+                    vape:LoadProfile(lastProfile)
+                end
+            end)
+        end)
+    end
+
     task.spawn(function()
         repeat
             vape:Save()
