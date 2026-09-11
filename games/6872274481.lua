@@ -11213,3 +11213,20 @@ run(function()
 	})
 end)
 
+run(function()
+    local AnticheatDisabler
+
+    AnticheatDisabler = vape.Categories.Blatant:CreateModule({
+        Name = 'AnticheatDisabler',
+        Function = function(callback)
+            if callback then
+                vape:CreateNotification('Vape', 'Antichet diesbeled ezzzzz', 5, 'info')
+                AnticheatDisabler:Clean(entitylib.Events.LocalAdded:Connect(characterAdded))
+                if entitylib.isAlive then
+                    characterAdded(entitylib.character)
+                end
+            end
+        end
+    })
+end)
+
