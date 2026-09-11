@@ -27,6 +27,37 @@ local cloneref = cloneref or function(obj)
 end
 local playersService = cloneref(game:GetService('Players'))
 
+local isMobile = shared.FlowVapeIsMobile == true
+
+local PC_PROFILES = { 'legit6872274481.txt', 'blatant6872274481.txt', 'legit6872265039.txt', 'blatant6872265039.txt' }
+local MOB_PROFILES = { 'legitMob6872274481.txt', 'blatantMob6872274481.txt', 'legitMob6872265039.txt', 'blatantMob6872265039.txt' }
+local DEFAULT_PROFILES = { 'default6872274481.txt', 'default6872265039.txt' }
+
+if listfiles then
+    local oldListFiles = listfiles
+    listfiles = function(path)
+        local files = oldListFiles(path)
+        if typeof(path) == 'string' and path:lower():match('flowvape/profiles$') then
+            local filtered = {}
+            local allowed = {}
+            for _, f in ipairs(DEFAULT_PROFILES) do allowed[f] = true end
+            if isMobile then
+                for _, f in ipairs(MOB_PROFILES) do allowed[f] = true end
+            else
+                for _, f in ipairs(PC_PROFILES) do allowed[f] = true end
+            end
+            for _, file in ipairs(files) do
+                local fname = file:match('[^/\\]+$')
+                if not fname or allowed[fname] then
+                    table.insert(filtered, file)
+                end
+            end
+            return filtered
+        end
+        return files
+    end
+end
+
 local function downloadFile(path, func)
     if not isfile(path) then
         local suc, res = pcall(function()
