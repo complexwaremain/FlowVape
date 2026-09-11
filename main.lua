@@ -31,12 +31,12 @@ local isMobile = shared.FlowVapeIsMobile == true
 
 local ALL_PROFILES = {
     ['6872274481'] = {
-        {Name = 'Legit',   File = isMobile and 'legitMob6872274481' or 'legit6872274481'},
-        {Name = 'Blatant', File = isMobile and 'blatantMob6872274481' or 'blatant6872274481'},
+        {Name = isMobile and 'LegitMob' or 'Legit',   File = isMobile and 'legitMob6872274481' or 'legit6872274481'},
+        {Name = isMobile and 'BlatantMob' or 'Blatant', File = isMobile and 'blatantMob6872274481' or 'blatant6872274481'},
     },
     ['6872265039'] = {
-        {Name = 'Legit',   File = isMobile and 'legitMob6872265039' or 'legit6872265039'},
-        {Name = 'Blatant', File = isMobile and 'blatantMob6872265039' or 'blatant6872265039'},
+        {Name = isMobile and 'LegitMob' or 'Legit',   File = isMobile and 'legitMob6872265039' or 'legit6872265039'},
+        {Name = isMobile and 'BlatantMob' or 'Blatant', File = isMobile and 'blatantMob6872265039' or 'blatant6872265039'},
     },
 }
 
