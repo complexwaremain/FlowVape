@@ -83,13 +83,27 @@ local function dlFile(url, dest)
     end
 end
 
-local function downloadProfiles(isMobile)
-    local toDelete = isMobile and PC_PROFILES or MOB_PROFILES
-    for i = 1, #toDelete do
-        if isfile('FlowVape/profiles/'..toDelete[i]) then
-            pcall(delfile, 'FlowVape/profiles/'..toDelete[i])
+local function clearProfiles(isMobile)
+    local allowed = {}
+    for _, f in ipairs(SHARED_FILES) do allowed[f] = true end
+    if isMobile then
+        for _, f in ipairs(MOB_PROFILES) do allowed[f] = true end
+    else
+        for _, f in ipairs(PC_PROFILES) do allowed[f] = true end
+    end
+
+    if isfolder('FlowVape/profiles') then
+        for _, file in ipairs(listfiles('FlowVape/profiles')) do
+            local fname = file:match('[^/\\]+$')
+            if fname and fname:sub(-4) == '.txt' and not allowed[fname] then
+                pcall(delfile, file)
+            end
         end
     end
+end
+
+local function downloadProfiles(isMobile)
+    clearProfiles(isMobile)
 
     for i = 1, #SHARED_FILES do
         dlFile(BASE..'profiles/'..SHARED_FILES[i], 'FlowVape/profiles/'..SHARED_FILES[i])
