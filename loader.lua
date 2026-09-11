@@ -84,6 +84,13 @@ local function dlFile(url, dest)
 end
 
 local function downloadProfiles(isMobile)
+    local toDelete = isMobile and PC_PROFILES or MOB_PROFILES
+    for i = 1, #toDelete do
+        if isfile('FlowVape/profiles/'..toDelete[i]) then
+            pcall(delfile, 'FlowVape/profiles/'..toDelete[i])
+        end
+    end
+
     for i = 1, #SHARED_FILES do
         dlFile(BASE..'profiles/'..SHARED_FILES[i], 'FlowVape/profiles/'..SHARED_FILES[i])
     end
