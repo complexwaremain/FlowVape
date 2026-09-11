@@ -2827,13 +2827,58 @@ run(function()
 end)
 	
 run(function()
-	vape.Categories.Blatant:CreateModule({
-		Name = 'NoFall',
-		Function = function(callback)
-			debug.setconstant(debug.getupvalue(jb.FallingController.Init, 19), 9, callback and 'Archivable' or 'Sit')
-		end,
-		Tooltip = 'Disables ragdoll handling & fall damage'
-	})
+    local NoFall
+    local groundHitConnection
+    local groundHitSent = false
+
+    NoFall = vape.Categories.Blatant:CreateModule({
+        Name = 'NoFall',
+        Function = function(callback)
+            if not callback then
+                if groundHitConnection then
+                    pcall(function() groundHitConnection:Disconnect() end)
+                    groundHitConnection = nil
+                end
+                groundHitSent = false
+                return
+            end
+
+            if groundHitConnection then return end
+
+            groundHitConnection = runService.PreSimulation:Connect(function()
+                if not entitylib.isAlive then
+                    groundHitSent = false
+                    return
+                end
+
+                local character = entitylib.character
+                local root = character.RootPart
+                local humanoid = character.Humanoid
+                if not root or not humanoid then return end
+
+                if humanoid.FloorMaterial ~= Enum.Material.Air then
+                    groundHitSent = false
+                    return
+                end
+
+                if not groundHitSent and root.AssemblyLinearVelocity.Y < -35 then
+                    groundHitSent = true
+                    pcall(function()
+                        local remote = bedwars.Client:Get('GroundHit')
+                        remote:SendToServer(
+                            nil,
+                            Vector3.new(0, 0, 0),
+                            workspace:GetServerTimeNow()
+                        )
+                    end)
+                elseif root.AssemblyLinearVelocity.Y > -10 then
+                    groundHitSent = false
+                end
+            end)
+            NoFall:Clean(groundHitConnection)
+        end,
+        Tooltip = 'no fall damage.'
+    })
 end)
 	
 run(function()
