@@ -57,7 +57,7 @@ local function injectProfiles()
                 end
             end
             if not alreadyExists then
-                table.insert(vape.Profiles, {Name = entry.Name, Bind = {}})
+                table.insert(vape.Profiles, {Name = entry.Name, File = entry.File, Bind = {}})
             end
         end
     end
