@@ -27,62 +27,6 @@ local cloneref = cloneref or function(obj)
 end
 local playersService = cloneref(game:GetService('Players'))
 
-local isMobile = shared.FlowVapeIsMobile == true
-
-local ALL_PROFILES = {
-    ['6872274481'] = {
-        {Name = 'Legit',   File = 'legit6872274481'},
-        {Name = 'Blatant', File = 'blatant6872274481'},
-        {Name = 'LegitMob',   File = 'legitMob6872274481'},
-        {Name = 'BlatantMob', File = 'blatantMob6872274481'},
-    },
-    ['6872265039'] = {
-        {Name = 'Legit',   File = 'legit6872265039'},
-        {Name = 'Blatant', File = 'blatant6872265039'},
-        {Name = 'LegitMob',   File = 'legitMob6872265039'},
-        {Name = 'BlatantMob', File = 'blatantMob6872265039'},
-    },
-}
-
-if listfiles then
-    local oldListFiles = listfiles
-    listfiles = function(path)
-        if typeof(path) == 'string' and path:lower():match('flowvape/profiles$') then
-            return {}
-        end
-        return oldListFiles(path)
-    end
-end
-
-local function injectProfiles()
-    local placeId = tostring(game.PlaceId)
-    local profiles = ALL_PROFILES[placeId]
-    if not profiles then return end
-    for i = 1, #profiles do
-        local entry = profiles[i]
-        if entry and entry.Name and type(entry.Name) == 'string' then
-            local isMobProfile = entry.Name:find('Mob') ~= nil
-            if (isMobile and isMobProfile) or (not isMobile and not isMobProfile) then
-                local alreadyExists = false
-                for j = 1, #vape.Profiles do
-                    local existing = vape.Profiles[j]
-                    local existingName = type(existing) == 'table' and existing.Name or tostring(existing)
-                    if existingName == entry.Name then
-                        alreadyExists = true
-                        break
-                    end
-                end
-                if not alreadyExists then
-                    table.insert(vape.Profiles, {Name = entry.Name, File = entry.File, Bind = {}})
-                end
-            end
-        end
-    end
-    pcall(function()
-        vape.Categories.Profiles:ChangeValue()
-    end)
-end
-
 local function downloadFile(path, func)
     if not isfile(path) then
         local suc, res = pcall(function()
@@ -102,7 +46,6 @@ end
 local function finishLoading()
     vape.Init = nil
     vape:Load()
-    pcall(injectProfiles)
 
     local lastProfileFile = 'FlowVape/profiles/lastprofile.txt'
     
