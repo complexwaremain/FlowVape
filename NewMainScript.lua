@@ -101,13 +101,27 @@ local function dlFile(url, dest)
     end
 end
 
-local function downloadProfiles(isMobile)
-    local toDelete = isMobile and PC_PROFILES or MOB_PROFILES
-    for i = 1, #toDelete do
-        if isfile('FlowVape/profiles/'..toDelete[i]) then
-            pcall(delfile, 'FlowVape/profiles/'..toDelete[i])
+local function clearProfiles(isMobile)
+    local allowed = {}
+    for _, f in ipairs(SHARED_FILES) do allowed[f] = true end
+    if isMobile then
+        for _, f in ipairs(MOB_PROFILES) do allowed[f] = true end
+    else
+        for _, f in ipairs(PC_PROFILES) do allowed[f] = true end
+    end
+
+    if isfolder('FlowVape/profiles') then
+        for _, file in ipairs(listfiles('FlowVape/profiles')) do
+            local fname = file:match('[^/\\]+$')
+            if fname and fname:sub(-4) == '.txt' and not allowed[fname] then
+                pcall(delfile, file)
+            end
         end
     end
+end
+
+local function downloadProfiles(isMobile)
+    clearProfiles(isMobile)
 
     for i = 1, #SHARED_FILES do
         dlFile(BASE..'profiles/'..SHARED_FILES[i], 'FlowVape/profiles/'..SHARED_FILES[i])
@@ -350,24 +364,14 @@ local mobBtn, mobStroke = makeBtn('Mobile', 'iOS / Android', 'MOB', 148, Color3.
 
 local statusLabel = Instance.new('TextLabel')
 statusLabel.Size = UDim2.new(1, -28, 0, 16)
-statusLabel.Position = UDim2.fromOffset(14, 162)
+statusLabel.Position = UDim2.new(0, 14, 1, -30)
 statusLabel.BackgroundTransparency = 1
 statusLabel.Text = ''
 statusLabel.TextColor3 = Color3.fromRGB(120, 118, 125)
 statusLabel.TextSize = 11
 statusLabel.Font = Enum.Font.Gotham
-statusLabel.TextXAlignment = Enum.TextXAlignment.Left
+statusLabel.TextXAlignment = Enum.TextXAlignment.Center
 statusLabel.Parent = body
-
-local verLabel = Instance.new('TextLabel')
-verLabel.Size = UDim2.new(1, 0, 0, 14)
-verLabel.Position = UDim2.fromOffset(0, 148)
-verLabel.BackgroundTransparency = 1
-verLabel.Text = 'v1.0 - FlowVape'
-verLabel.TextColor3 = Color3.fromRGB(60, 58, 65)
-verLabel.TextSize = 10
-verLabel.Font = Enum.Font.Gotham
-verLabel.Parent = body
 
 local hue = 0
 local rainbowConn = runService.RenderStepped:Connect(function()
