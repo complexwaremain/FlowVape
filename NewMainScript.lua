@@ -173,9 +173,12 @@ local function runLoad(isMobile, statusLabel)
     shared.FlowVapeIsMobile = isMobile
     local maincontent = game:HttpGet(BASE..'main.lua')
     pcall(writefile, 'FlowVape/main.lua', maincontent)
-    return pcall(function()
-        loadstring(maincontent, 'main')()
-    end)
+    local func, err = loadstring(maincontent, 'main')
+    if not func then
+        return false, 'Syntax error in main.lua: '..tostring(err)
+    end
+    task.spawn(func)
+    return true
 end
 
 setupFolders()
