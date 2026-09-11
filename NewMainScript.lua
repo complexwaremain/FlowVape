@@ -418,9 +418,6 @@ local function load(isMobile)
 
     if ok then
         pcall(writefile, 'FlowVape/device.txt', isMobile and 'mobile' or 'pc')
-        statusLabel.Text = 'Loaded!'
-        statusLabel.TextColor3 = Color3.fromRGB(74, 222, 128)
-        task.wait(0.5)
         rainbowConn:Disconnect()
         sg:Destroy()
         task.wait(0.3)
