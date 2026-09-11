@@ -63,17 +63,17 @@ local SHARED_FILES = {
 }
 
 local PC_PROFILES = {
-    'legit6872274481.txt',
-    'blatant6872274481.txt',
-    'legit6872265039.txt',
-    'blatant6872265039.txt',
+    'Legit6872274481.txt',
+    'Blatant6872274481.txt',
+    'Legit6872265039.txt',
+    'Blatant6872265039.txt',
 }
 
 local MOB_PROFILES = {
-    'legitMob6872274481.txt',
-    'blatantMob6872274481.txt',
-    'legitMob6872265039.txt',
-    'blatantMob6872265039.txt',
+    'LegitMob6872274481.txt',
+    'BlatantMob6872274481.txt',
+    'LegitMob6872265039.txt',
+    'BlatantMob6872265039.txt',
 }
 
 local function dlFile(url, dest)
