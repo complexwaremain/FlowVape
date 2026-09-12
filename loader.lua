@@ -63,8 +63,9 @@ local function forceDownloadFile(urlPath, localPath)
     local suc, res = pcall(function()
         return game:HttpGet(BASE..urlPath, true)
     end)
-    if not suc or res == '404: Not Found' then return end
+    if not suc or res == '404: Not Found' then return false end
     pcall(writefile, localPath, res)
+    return true
 end
 
 local isMobile = false
@@ -125,11 +126,12 @@ for i = 1, #SHARED_FILES do
 end
 
 if isMobile then
+
     local mobProfiles = {
-        {remote = 'LegitMob6872274481.txt', local = 'Legit6872274481.txt'},
-        {remote = 'BlatantMob6872274481.txt', local = 'Blatant6872274481.txt'},
-        {remote = 'LegitMob6872265039.txt', local = 'Legit6872265039.txt'},
-        {remote = 'BlatantMob6872265039.txt', local = 'Blatant6872265039.txt'}
+        {remote = 'legitMob6872274481.txt', local = 'Legit6872274481.txt'},
+        {remote = 'blatantMob6872274481.txt', local = 'Blatant6872274481.txt'},
+        {remote = 'legitMob6872265039.txt', local = 'Legit6872265039.txt'},
+        {remote = 'blatantMob6872265039.txt', local = 'Blatant6872265039.txt'}
     }
     for i = 1, #mobProfiles do
         forceDownloadFile('profilesmobile/'..mobProfiles[i].remote, 'FlowVape/profiles/'..mobProfiles[i].local)
