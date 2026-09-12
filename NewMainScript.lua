@@ -100,10 +100,10 @@ local PC_PROFILES = {
 }
 
 local MOB_PROFILES = {
-    'LegitMob6872274481.txt',
-    'BlatantMob6872274481.txt',
-    'LegitMob6872265039.txt',
-    'BlatantMob6872265039.txt',
+    'legitMob6872274481.txt',
+    'blatantMob6872274481.txt',
+    'legitMob6872265039.txt',
+    'blatantMob6872265039.txt',
 }
 
 local GAME_FILES = {
