@@ -11222,7 +11222,6 @@ run(function()
     local ray_check = RaycastParams.new()
     ray_check.RespectCanCollide = true
     
-    -- Safe fallback for isnetworkowner just in case it isn't defined globally
     local isnetworkowner = isnetworkowner or function(part)
         return part and part:IsA('BasePart') and part:GetNetworkOwner() == lplr
     end
@@ -11230,7 +11229,7 @@ run(function()
     Speed = vape.Categories.Blatant:CreateModule({
         Name = 'ZephyrDisabler',
         Function = function(callback)
-            -- Safely check for custom fork globals without crashing
+
             if frictionTable then 
                 frictionTable.Speed = callback or nil 
             end
@@ -11254,9 +11253,9 @@ run(function()
                         if state == Enum.HumanoidStateType.Climbing then return end
     
                         local root = char.RootPart
-                        -- Safely get getSpeed, fallback to WalkSpeed
+
                         local velo = (getSpeed and getSpeed()) or hum.WalkSpeed
-                        -- Safely get AntiFallDirection, fallback to MoveDirection
+
                         local moveDirection = AntiFallDirection or hum.MoveDirection
     
                         local destination = (moveDirection * math.max(Value.Value - velo, 0) * dt)
@@ -11271,10 +11270,10 @@ run(function()
                         end
     
                         root.CFrame += destination
-                        -- Spoof velocity to normal speed so anticheat doesn't flag you
+
                         root.AssemblyLinearVelocity = (moveDirection * velo) + Vector3.new(0, root.AssemblyLinearVelocity.Y, 0)
                         
-                        -- `Attacking` is a bare global on purpose: bedwars.lua's Killaura sets it
+=
                         local isAttacking = Attacking
                         if AutoJump.Enabled and (state == Enum.HumanoidStateType.Running or state == Enum.HumanoidStateType.Landed) and moveDirection ~= Vector3.zero and (isAttacking or AlwaysJump.Enabled) then
                             hum:ChangeState(Enum.HumanoidStateType.Jumping)
