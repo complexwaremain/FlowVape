@@ -11214,19 +11214,39 @@ run(function()
 end)
 
 run(function()
-    local AnticheatDisabler
+    local JadeInstaKill
+    local Height
 
-    AnticheatDisabler = vape.Categories.Blatant:CreateModule({
-        Name = 'AnticheatDisabler',
+    JadeInstaKill = vape.Categories.Blatant:CreateModule({
+        Name = 'JadeInstaKill',
+
         Function = function(callback)
             if callback then
-                vape:CreateNotification('Vape', 'Antichet diesbeled ezzzzz', 5, 'info')
-                AnticheatDisabler:Clean(entitylib.Events.LocalAdded:Connect(characterAdded))
-                if entitylib.isAlive then
-                    characterAdded(entitylib.character)
+                local character = lplr.Character
+                local root = character and character:FindFirstChild('HumanoidRootPart')
+
+                if root then
+                    root.CFrame = root.CFrame + Vector3.new(0, Height.Value, 0)
+
+                    task.wait(0.25)
+
+                    if JadeInstaKill.Enabled then
+                        bedwars.AbilityController:useAbility('jade_hammer_jump')
+                        JadeInstaKill:Toggle()
+                    end
                 end
             end
-        end
+        end,
+
+        Tooltip = 'ez'
+    })
+
+    Height = JadeInstaKill:CreateSlider({
+        Name = 'Height',
+        Min = 10,
+        Max = 150,
+        Default = 50,
+        Round = 1
     })
 end)
 
