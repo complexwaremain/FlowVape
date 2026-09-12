@@ -311,7 +311,6 @@ local function createMobileButton(buttonapi, position)
 end
 
 local function downloadFile(path, func)
-local function downloadFile(path, func)
     if not isfile(path) then
         local suc, res = pcall(function()
             return game:HttpGet('https://raw.githubusercontent.com/complexwaremain/FlowVape/main/'..select(1, path:gsub('FlowVape/', '')), true)
