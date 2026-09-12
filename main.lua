@@ -24,7 +24,7 @@ local queue_on_teleport = queue_on_teleport or function() end
 
 local isfile = isfile or function(file)
     local suc, res = pcall(function() return readfile(file) end)
-    return suc and res ~= nil and res ~= ''
+    return suc and res ~= nil
 end
 
 local cloneref = cloneref or function(obj) return obj end
@@ -35,26 +35,16 @@ local ALL_PROFILES = {
     ['6872274481'] = {
         {Name = 'Legit', File = 'Legit6872274481'},
         {Name = 'Blatant', File = 'Blatant6872274481'},
-        {Name = 'LegitMob', File = 'legitMob6872274481'},
-        {Name = 'BlatantMob', File = 'blatantMob6872274481'},
+        {Name = 'LegitMob', File = 'LegitMob6872274481'},
+        {Name = 'BlatantMob', File = 'BlatantMob6872274481'},
     },
     ['6872265039'] = {
         {Name = 'Legit', File = 'Legit6872265039'},
         {Name = 'Blatant', File = 'Blatant6872265039'},
-        {Name = 'LegitMob', File = 'legitMob6872265039'},
-        {Name = 'BlatantMob', File = 'blatantMob6872265039'},
+        {Name = 'LegitMob', File = 'LegitMob6872265039'},
+        {Name = 'BlatantMob', File = 'BlatantMob6872265039'},
     },
 }
-
-if listfiles then
-    local oldListFiles = listfiles
-    listfiles = function(path)
-        if typeof(path) == 'string' and path:lower():match('flowvape/profiles$') then
-            return oldListFiles(path)
-        end
-        return oldListFiles(path)
-    end
-end
 
 local function injectProfiles()
     local placeId = tostring(game.PlaceId)
@@ -136,10 +126,31 @@ local function finishLoading()
 
     if lastProfile and lastProfile ~= '' then
         task.spawn(function()
-            task.wait(1)
+            local deadline = tick() + 15
+            while not shared.FlowVapeGameReady and tick() < deadline do
+                task.wait(0.1)
+            end
             pcall(function()
                 if vape.LoadProfile then
                     vape:LoadProfile(lastProfile)
+                end
+                local lobbyFile = 'FlowVape/profiles/'..lastProfile..'6872274481.txt'
+                local matchFile = 'FlowVape/profiles/'..lastProfile..'6872265039.txt'
+                if isfile(lobbyFile) and isfile(matchFile) then
+                    local okL, lobbyData = pcall(function()
+                        return game:GetService('HttpService'):JSONDecode(readfile(lobbyFile))
+                    end)
+                    local okM, matchData = pcall(function()
+                        return game:GetService('HttpService'):JSONDecode(readfile(matchFile))
+                    end)
+                    if okL and okM and type(lobbyData) == 'table' and type(matchData) == 'table' then
+                        for moduleName, settings in pairs(lobbyData) do
+                            if matchData[moduleName] == nil then
+                                matchData[moduleName] = settings
+                            end
+                        end
+                        pcall(writefile, matchFile, game:GetService('HttpService'):JSONEncode(matchData))
+                    end
                 end
             end)
         end)
