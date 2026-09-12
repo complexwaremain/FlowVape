@@ -8,9 +8,6 @@ local delfile = delfile or function(file)
     pcall(writefile, file, '')
 end
 
-local httpService = game:GetService('HttpService')
-local BASE = 'https://raw.githubusercontent.com/complexwaremain/FlowVape/main/'
-
 local function wipeFolder(path)
     if not isfolder(path) then return end
     for _, file in listfiles(path) do
@@ -21,7 +18,7 @@ local function wipeFolder(path)
     end
 end
 
-for _, folder in {'FlowVape', 'FlowVape/games', 'FlowVape/profiles', 'FlowVape/assets', 'FlowVape/assets/new', 'FlowVape/libraries', 'FlowVape/profilesmobile', 'FlowVape/guis'} do
+    for _, folder in {'FlowVape', 'FlowVape/games', 'FlowVape/profiles', 'FlowVape/assets', 'FlowVape/libraries', 'FlowVape/profilesmobile', 'FlowVape/guis'} do
     if not isfolder(folder) then
         pcall(makefolder, folder)
     end
@@ -46,107 +43,72 @@ if not shared.VapeDeveloper then
     pcall(writefile, 'FlowVape/profiles/commit.txt', commit)
 end
 
-local function downloadFile(urlPath, localPath)
-    if not isfile(localPath) then
+local function downloadFile(path, func)
+    if not isfile(path) then
+        local commitFile = 'FlowVape/profiles/commit.txt'
+        local commit = isfile(commitFile) and readfile(commitFile) or 'main'
         local suc, res = pcall(function()
-            return game:HttpGet(BASE..urlPath, true)
+            return game:HttpGet('https://raw.githubusercontent.com/complexwaremain/FlowVape/main/'..select(1, path:gsub('FlowVape/', '')), true)
         end)
-        if not suc or res == '404: Not Found' then return end
-        if localPath:find('.lua') then
+        if not suc or res == '404: Not Found' then
+            error(res)
+        end
+        if path:find('.lua') then
             res = '--This watermark is used to delete the file if its cached, remove it to make the file persist after vape updates.\n'..res
         end
-        pcall(writefile, localPath, res)
+        pcall(writefile, path, res)
+        if func then return func(path) end
+        return res 
     end
+    return (func or readfile)(path)
 end
 
-local function forceDownloadFile(urlPath, localPath)
+-- Fixed Profile Downloading with Correct Capitalisation
+local function forceDownloadProfile(urlPath, localPath)
     local suc, res = pcall(function()
-        return game:HttpGet(BASE..urlPath, true)
+        return game:HttpGet('https://raw.githubusercontent.com/complexwaremain/FlowVape/main/'..urlPath, true)
     end)
-    if not suc or res == '404: Not Found' then return false end
-    pcall(writefile, localPath, res)
-    return true
-end
-
-local isMobile = false
-if isfile('FlowVape/profiles/device.txt') then
-    isMobile = readfile('FlowVape/profiles/device.txt') == 'mobile'
-else
-    local inputService = game:GetService('UserInputService')
-    isMobile = inputService.TouchEnabled and not inputService.MouseEnabled
-    pcall(writefile, 'FlowVape/profiles/device.txt', isMobile and 'mobile' or 'pc')
-end
-shared.FlowVapeIsMobile = isMobile
-
-downloadFile('guis/new.lua', 'FlowVape/guis/new.lua')
-downloadFile('guis/new.lua', 'FlowVape/guis/customgui.lua')
-
-local function downloadAllAssets()
-    local ok, response = pcall(function()
-        return game:HttpGet('https://api.github.com/repos/complexwaremain/FlowVape/contents/assets/new?ref=main')
-    end)
-
-    if ok and response then
-        local files = {}
-        local decOk, decoded = pcall(function()
-            return httpService:JSONDecode(response)
-        end)
-
-        if decOk and type(decoded) == 'table' then
-            for _, f in ipairs(decoded) do
-                if f.type == 'file' and f.name then
-                    table.insert(files, f.name)
-                end
-            end
-        else
-            for name in response:gmatch('"name"%s*:%s*"([^"]+)"') do
-                if name:match('%.') then
-                    table.insert(files, name)
-                end
-            end
-        end
-
-        for _, name in ipairs(files) do
-            downloadFile('assets/new/'..name, 'FlowVape/assets/new/'..name)
-        end
-    else
-        local fallbackAssets = {'textv4.png', 'guiv4.png', 'textvape.png', 'guivape.png'}
-        for _, asset in ipairs(fallbackAssets) do
-            downloadFile('assets/new/'..asset, 'FlowVape/assets/new/'..asset)
-        end
+    if suc and res ~= '404: Not Found' then
+        pcall(writefile, 'FlowVape/'..localPath, res)
     end
 end
 
-downloadAllAssets()
+local isMobile = shared.FlowVapeIsMobile == true
 
-local SHARED_FILES = {'gui.txt', 'commit.txt', '2619619496.gui.txt', 'default6872274481.txt', 'default6872265039.txt'}
+local SHARED_FILES = {
+    'profiles/gui.txt',
+    'profiles/commit.txt',
+    'profiles/2619619496.gui.txt',
+    'profiles/default6872274481.txt',
+    'profiles/default6872265039.txt',
+}
 
 for i = 1, #SHARED_FILES do
-    forceDownloadFile('profiles/'..SHARED_FILES[i], 'FlowVape/profiles/'..SHARED_FILES[i])
+    forceDownloadProfile(SHARED_FILES[i], SHARED_FILES[i])
 end
 
 if isMobile then
-
+    -- GitHub casing: legitMob... Saved locally as Legit...
     local mobProfiles = {
-        {remote = 'legitMob6872274481.txt', local = 'Legit6872274481.txt'},
-        {remote = 'blatantMob6872274481.txt', local = 'Blatant6872274481.txt'},
-        {remote = 'legitMob6872265039.txt', local = 'Legit6872265039.txt'},
-        {remote = 'blatantMob6872265039.txt', local = 'Blatant6872265039.txt'}
+        {remote = 'profilesmobile/legitMob6872274481.txt', saveAs = 'profiles/Legit6872274481.txt'},
+        {remote = 'profilesmobile/blatantMob6872274481.txt', saveAs = 'profiles/Blatant6872274481.txt'},
+        {remote = 'profilesmobile/legitMob6872265039.txt', saveAs = 'profiles/Legit6872265039.txt'},
+        {remote = 'profilesmobile/blatantMob6872265039.txt', saveAs = 'profiles/Blatant6872265039.txt'}
     }
     for i = 1, #mobProfiles do
-        forceDownloadFile('profilesmobile/'..mobProfiles[i].remote, 'FlowVape/profiles/'..mobProfiles[i].local)
+        forceDownloadProfile(mobProfiles[i].remote, mobProfiles[i].saveAs)
     end
 else
-    local pcProfiles = {'Legit6872274481.txt', 'Blatant6872274481.txt', 'Legit6872265039.txt', 'Blatant6872265039.txt'}
+    -- GitHub casing: Legit... Saved locally as Legit...
+    local pcProfiles = {
+        {remote = 'profiles/Legit6872274481.txt', saveAs = 'profiles/Legit6872274481.txt'},
+        {remote = 'profiles/Blatant6872274481.txt', saveAs = 'profiles/Blatant6872274481.txt'},
+        {remote = 'profiles/Legit6872265039.txt', saveAs = 'profiles/Legit6872265039.txt'},
+        {remote = 'profiles/Blatant6872265039.txt', saveAs = 'profiles/Blatant6872265039.txt'}
+    }
     for i = 1, #pcProfiles do
-        forceDownloadFile('profiles/'..pcProfiles[i], 'FlowVape/profiles/'..pcProfiles[i])
+        forceDownloadProfile(pcProfiles[i].remote, pcProfiles[i].saveAs)
     end
 end
 
-local gameFiles = {'6872274481.lua', '6872265039.lua', '8560631822.lua', '8444591321.lua'}
-for i = 1, #gameFiles do
-    downloadFile('games/'..gameFiles[i], 'FlowVape/games/'..gameFiles[i])
-end
-
-downloadFile('main.lua', 'FlowVape/main.lua')
-return loadstring(readfile('FlowVape/main.lua'), 'main')()
+return loadstring(downloadFile('FlowVape/main.lua'), 'main')()
