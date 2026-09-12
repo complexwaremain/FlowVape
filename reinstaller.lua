@@ -1,6 +1,3 @@
--- FlowVape Reinstaller
--- Completely wipes all FlowVape files and subfolders, then relaunches.
-
 local players = game:GetService('Players')
 local coreGui = game:GetService('CoreGui')
 local playerGui = players.LocalPlayer:WaitForChild('PlayerGui')
@@ -10,11 +7,8 @@ screenGui.Name = 'FlowVapeReinstallerNotif'
 screenGui.ResetOnSpawn = false
 screenGui.IgnoreGuiInset = true
 screenGui.DisplayOrder = 99999
-
 pcall(function() screenGui.Parent = coreGui end)
-if not screenGui.Parent then
-    screenGui.Parent = playerGui
-end
+if not screenGui.Parent then screenGui.Parent = playerGui end
 
 local notifFrame = Instance.new('Frame')
 notifFrame.Size = UDim2.fromOffset(260, 70)
@@ -23,10 +17,15 @@ notifFrame.BackgroundColor3 = Color3.fromRGB(18, 17, 19)
 notifFrame.BackgroundTransparency = 0.1
 notifFrame.BorderSizePixel = 0
 notifFrame.Parent = screenGui
-Instance.new('UICorner', notifFrame).CornerRadius = UDim.new(0, 8)
-local stroke = Instance.new('UIStroke', notifFrame)
+
+local notifCorner = Instance.new('UICorner')
+notifCorner.CornerRadius = UDim.new(0, 8)
+notifCorner.Parent = notifFrame
+
+local stroke = Instance.new('UIStroke')
 stroke.Color = Color3.fromRGB(96, 165, 250)
 stroke.Thickness = 1.5
+stroke.Parent = notifFrame
 
 local notifLabel = Instance.new('TextLabel')
 notifLabel.Size = UDim2.new(1, -20, 1, -10)
@@ -47,37 +46,54 @@ end
 
 local function wipeDirectory(path)
     if not isfolder(path) then return end
-    
+
     if delfolder then
         pcall(delfolder, path)
-        return
+        if not isfolder(path) then return end
     end
 
     if listfiles then
         for _, file in ipairs(listfiles(path)) do
             pcall(function()
                 if isfile(file) then
-                    if delfile then 
-                        delfile(file) 
-                    else 
-                        writefile(file, '') 
+                    if delfile then
+                        delfile(file)
+                    else
+                        writefile(file, '')
                     end
                 elseif isfolder(file) then
-
                     wipeDirectory(file)
                 end
             end)
         end
     end
+
+    if delfolder then
+        pcall(delfolder, path)
+    end
 end
 
 print('[FlowVape] Wiping all FlowVape files and folders...')
 wipeDirectory('FlowVape')
-
 task.wait(1.5)
-
 print('[FlowVape] Files completely cleared. Launching installer...')
 
-screenGui:Destroy()
+local ok, err = pcall(function()
+    local content = game:HttpGet('https://raw.githubusercontent.com/complexwaremain/FlowVape/main/NewMainScript.lua', true)
+    if type(content) ~= 'string' or content == '' or content == '404: Not Found' then
+        error('Failed to fetch NewMainScript.lua')
+    end
+    local func, loadErr = loadstring(content, 'NewMainScript')
+    if not func then
+        error('Syntax error: '..tostring(loadErr))
+    end
+    func()
+end)
 
-loadstring(game:HttpGet('https://raw.githubusercontent.com/complexwaremain/FlowVape/main/newmainscript.lua', true))()
+if ok then
+    screenGui:Destroy()
+else
+    notifLabel.Text = "Reinstall failed:\n"..tostring(err):sub(1, 80)
+    notifLabel.TextColor3 = Color3.fromRGB(248, 113, 113)
+    stroke.Color = Color3.fromRGB(248, 113, 113)
+end
