@@ -11318,39 +11318,3 @@ end)
 
 
 
-run(function()
-    local JadeInstaKill
-    local Height
-
-    JadeInstaKill = vape.Categories.Blatant:CreateModule({
-        Name = 'JadeInstaKill',
-
-        Function = function(callback)
-            if callback then
-                local character = lplr.Character
-                local root = character and character:FindFirstChild('HumanoidRootPart')
-
-                if root then
-                    root.CFrame = root.CFrame + Vector3.new(0, Height.Value, 0)
-
-                    task.wait(0.25)
-
-                    if JadeInstaKill.Enabled then
-                        bedwars.AbilityController:useAbility('jade_hammer_jump')
-                        JadeInstaKill:Toggle()
-                    end
-                end
-            end
-        end,
-
-        Tooltip = 'jade hammer op bhaiii'
-    })
-
-    Height = JadeInstaKill:CreateSlider({
-        Name = 'Height',
-        Min = 10,
-        Max = 150,
-        Default = 50,
-        Round = 1
-    })
-end)
