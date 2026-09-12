@@ -1,99 +1,106 @@
-local players = game:GetService('Players')
-local coreGui = game:GetService('CoreGui')
-local playerGui = players.LocalPlayer:WaitForChild('PlayerGui')
+-- Gui to Lua
+-- Version: 3.2
 
-local screenGui = Instance.new('ScreenGui')
-screenGui.Name = 'FlowVapeReinstallerNotif'
-screenGui.ResetOnSpawn = false
-screenGui.IgnoreGuiInset = true
-screenGui.DisplayOrder = 99999
-pcall(function() screenGui.Parent = coreGui end)
-if not screenGui.Parent then screenGui.Parent = playerGui end
+-- Instances:
 
-local notifFrame = Instance.new('Frame')
-notifFrame.Size = UDim2.fromOffset(260, 70)
-notifFrame.Position = UDim2.new(1, -280, 1, -90)
-notifFrame.BackgroundColor3 = Color3.fromRGB(18, 17, 19)
-notifFrame.BackgroundTransparency = 0.1
-notifFrame.BorderSizePixel = 0
-notifFrame.Parent = screenGui
+local flowvape = Instance.new("ScreenGui")
+local notifframe = Instance.new("Frame")
+local uicorner = Instance.new("UICorner")
+local uistroke = Instance.new("UIStroke")
+local notiflabel = Instance.new("TextLabel")
 
-local notifCorner = Instance.new('UICorner')
-notifCorner.CornerRadius = UDim.new(0, 8)
-notifCorner.Parent = notifFrame
+-- Properties:
 
-local stroke = Instance.new('UIStroke')
-stroke.Color = Color3.fromRGB(96, 165, 250)
-stroke.Thickness = 1.5
-stroke.Parent = notifFrame
+flowvape.Name = "flowvape"
+flowvape.ResetOnSpawn = false
+flowvape.IgnoreGuiInset = true
+flowvape.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+flowvape.DisplayOrder = 99999
 
-local notifLabel = Instance.new('TextLabel')
-notifLabel.Size = UDim2.new(1, -20, 1, -10)
-notifLabel.Position = UDim2.fromOffset(10, 5)
-notifLabel.BackgroundTransparency = 1
-notifLabel.Text = "FlowVape is wiping files...\nThis may take a few seconds."
-notifLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
-notifLabel.Font = Enum.Font.GothamSemibold
-notifLabel.TextSize = 14
-notifLabel.TextWrapped = true
-notifLabel.TextYAlignment = Enum.TextYAlignment.Center
-notifLabel.Parent = notifFrame
+pcall(function()
+    flowvape.Parent = game:GetService("CoreGui")
+end)
+if not flowvape.Parent then
+    flowvape.Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+end
+
+notifframe.Name = "notifframe"
+notifframe.Parent = flowvape
+notifframe.BackgroundColor3 = Color3.fromRGB(18, 17, 19)
+notifframe.BackgroundTransparency = 0.100
+notifframe.BorderSizePixel = 0
+notifframe.Position = UDim2.new(1, -280, 1, -90)
+notifframe.Size = UDim2.new(0, 260, 0, 70)
+
+uicorner.CornerRadius = UDim.new(0, 8)
+uicorner.Name = "uicorner"
+uicorner.Parent = notifframe
+
+uistroke.Color = Color3.fromRGB(96, 165, 250)
+uistroke.Thickness = 1.500
+uistroke.Name = "uistroke"
+uistroke.Parent = notifframe
+
+notiflabel.Name = "notiflabel"
+notiflabel.Parent = notifframe
+notiflabel.BackgroundTransparency = 1.000
+notiflabel.Position = UDim2.new(0, 10, 0, 5)
+notiflabel.Size = UDim2.new(1, -20, 1, -10)
+notiflabel.Font = Enum.Font.GothamSemibold
+notiflabel.Text = "flowvape\ndeleting old files..."
+notiflabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+notiflabel.TextSize = 14.000
+notiflabel.TextWrapped = true
+
+-- Scripts:
+
+local function custlog(str, ui)
+    if ui then
+        notiflabel.Text = str
+    end
+    print("[flowvape] " .. str)
+end
 
 if shared.vape then
-    pcall(function() shared.vape:Uninject() end)
+    pcall(function()
+        shared.vape:Uninject()
+    end)
     shared.vape = nil
 end
 
-local function wipeDirectory(path)
-    if not isfolder(path) then return end
-
+local function del(dir)
+    if not isfolder(dir) then return end
+    
     if delfolder then
-        pcall(delfolder, path)
-        if not isfolder(path) then return end
+        pcall(delfolder, dir)
+        return
     end
 
     if listfiles then
-        for _, file in ipairs(listfiles(path)) do
+        for _, v in pairs(listfiles(dir)) do
             pcall(function()
-                if isfile(file) then
-                    if delfile then
-                        delfile(file)
-                    else
-                        writefile(file, '')
+                if isfile(v) then
+                    if delfile then 
+                        delfile(v) 
+                    else 
+                        writefile(v, "") 
                     end
-                elseif isfolder(file) then
-                    wipeDirectory(file)
+                elseif isfolder(v) then
+                    del(v)
                 end
             end)
         end
     end
-
-    if delfolder then
-        pcall(delfolder, path)
-    end
 end
 
-print('[FlowVape] Wiping all FlowVape files and folders...')
-wipeDirectory('FlowVape')
+custlog("cleaning flowvape folder...", false)
+del("FlowVape")
+
 task.wait(1.5)
-print('[FlowVape] Files completely cleared. Launching installer...')
 
-local ok, err = pcall(function()
-    local content = game:HttpGet('https://raw.githubusercontent.com/complexwaremain/FlowVape/main/NewMainScript.lua', true)
-    if type(content) ~= 'string' or content == '' or content == '404: Not Found' then
-        error('Failed to fetch NewMainScript.lua')
-    end
-    local func, loadErr = loadstring(content, 'NewMainScript')
-    if not func then
-        error('Syntax error: '..tostring(loadErr))
-    end
-    func()
-end)
+custlog("done, downloading main script...", true)
+task.wait(0.5)
 
-if ok then
-    screenGui:Destroy()
-else
-    notifLabel.Text = "Reinstall failed:\n"..tostring(err):sub(1, 80)
-    notifLabel.TextColor3 = Color3.fromRGB(248, 113, 113)
-    stroke.Color = Color3.fromRGB(248, 113, 113)
-end
+flowvape:Destroy()
+
+loadstring(game:HttpGet("https://raw.githubusercontent.com/complexwaremain/FlowVape/main/NewMainScript.lua", true))()
