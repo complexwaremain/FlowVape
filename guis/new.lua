@@ -311,28 +311,29 @@ local function createMobileButton(buttonapi, position)
 end
 
 local function downloadFile(path, func)
-	if not isfile(path) then
-		local suc, res = pcall(function()
-			return game:HttpGet('https://raw.githubusercontent.com/complexwaremain/FlowVape/main/'..select(1, path:gsub('FlowVape/', '')), true)
-		end)
-		if not suc then
-			error(tostring(res))
-		end
-		if type(res) ~= 'string' or res == '' or res == '404: Not Found' then
-			error('Failed to fetch: '..tostring(path))
-		end
-		if path:find('.lua') then
-			res = '--This watermark is used to delete the file if its cached, remove it to make the file persist after vape updates.\n'..res
-		end
-		writefile(path, res)
+local function downloadFile(path, func)
+    if not isfile(path) then
+        local suc, res = pcall(function()
+            return game:HttpGet('https://raw.githubusercontent.com/complexwaremain/FlowVape/main/'..select(1, path:gsub('FlowVape/', '')), true)
+        end)
+        if not suc then
+            error(tostring(res))
+        end
+        if type(res) ~= 'string' or res == '' or res == '404: Not Found' then
+            error('Failed to fetch: '..tostring(path))
+        end
+        if path:find('.lua') then
+            res = '--This watermark is used to delete the file if its cached, remove it to make the file persist after vape updates.\n'..res
+        end
+        writefile(path, res)
+    end
+    return (func or readfile)(path)
 	end
-	return (func or readfile)(path)
-end
 
 getcustomasset = not inputService.TouchEnabled and assetfunction and function(path)
-	return downloadFile(path, assetfunction)
+    return downloadFile(path, assetfunction)
 end or function(path)
-	return getcustomassets[path] or ''
+    return getcustomassets[path] or ''
 end
 
 local function getTableSize(tab)
@@ -987,7 +988,7 @@ components = {
 		title.Name = 'Title'
 		title.Size = UDim2.new(1, 0, 0, 29)
 		title.BackgroundTransparency = 1
-		title.Text = '          '..optionsettings.Name..' - '..optionapi.Value
+		title.Text = '         '..optionsettings.Name..' - '..optionapi.Value
 		title.TextXAlignment = Enum.TextXAlignment.Left
 		title.TextColor3 = color.Dark(uipallet.Text, 0.16)
 		title.TextSize = 13
@@ -1026,7 +1027,7 @@ components = {
 		
 		function optionapi:SetValue(val, mouse)
 			self.Value = table.find(optionsettings.List, val) and val or optionsettings.List[1] or 'None'
-			title.Text = '          '..optionsettings.Name..' - '..self.Value
+			title.Text = '         '..optionsettings.Name..' - '..self.Value
 			if dropdownchildren then
 				arrow.Rotation = 90
 				dropdownchildren:Destroy()
@@ -1056,7 +1057,7 @@ components = {
 					dropdownoption.BackgroundColor3 = uipallet.Main
 					dropdownoption.BorderSizePixel = 0
 					dropdownoption.AutoButtonColor = false
-					dropdownoption.Text = '          '..v
+					dropdownoption.Text = '         '..v
 					dropdownoption.TextXAlignment = Enum.TextXAlignment.Left
 					dropdownoption.TextColor3 = color.Dark(uipallet.Text, 0.16)
 					dropdownoption.TextSize = 13
@@ -2097,7 +2098,7 @@ components = {
 		toggle.BorderSizePixel = 0
 		toggle.AutoButtonColor = false
 		toggle.Visible = optionsettings.Visible == nil or optionsettings.Visible
-		toggle.Text = '          '..optionsettings.Name
+		toggle.Text = '          '..optionsettings.Name
 		toggle.TextXAlignment = Enum.TextXAlignment.Left
 		toggle.TextColor3 = color.Dark(uipallet.Text, 0.16)
 		toggle.TextSize = 14
@@ -2411,7 +2412,7 @@ components = {
 			label.Name = 'DividerLabel'
 			label.Size = UDim2.fromOffset(218, 27)
 			label.BackgroundTransparency = 1
-			label.Text = '          '..text:upper()
+			label.Text = '          '..text:upper()
 			label.TextXAlignment = Enum.TextXAlignment.Left
 			label.TextColor3 = color.Dark(uipallet.Text, 0.43)
 			label.TextSize = 9
@@ -2592,7 +2593,7 @@ function mainapi:CreateGUI()
 		button.BackgroundColor3 = uipallet.Main
 		button.BorderSizePixel = 0
 		button.AutoButtonColor = false
-		button.Text = '          Rebind GUI'
+		button.Text = '          Rebind GUI'
 		button.TextXAlignment = Enum.TextXAlignment.Left
 		button.TextColor3 = color.Dark(uipallet.Text, 0.16)
 		button.TextSize = 14
@@ -2680,7 +2681,7 @@ function mainapi:CreateGUI()
 		button.BackgroundColor3 = uipallet.Main
 		button.BorderSizePixel = 0
 		button.AutoButtonColor = false
-		button.Text = (categorysettings.Icon and '                              ' or '            ')..categorysettings.Name
+		button.Text = (categorysettings.Icon and '                                 ' or '             ')..categorysettings.Name
 		button.TextXAlignment = Enum.TextXAlignment.Left
 		button.TextColor3 = color.Dark(uipallet.Text, 0.16)
 		button.TextSize = 14
@@ -2849,7 +2850,7 @@ function mainapi:CreateGUI()
 			toggle.Size = UDim2.new(1, 0, 0, 40)
 			toggle.BackgroundTransparency = 1
 			toggle.AutoButtonColor = false
-			toggle.Text = string.rep(' ', 33 * scale.Scale)..togglesettings.Name
+			toggle.Text = string.rep(' ', 33 * scale.Scale)..togglesettings.Name
 			toggle.TextXAlignment = Enum.TextXAlignment.Left
 			toggle.TextColor3 = color.Dark(uipallet.Text, 0.16)
 			toggle.TextSize = 14
@@ -2893,7 +2894,7 @@ function mainapi:CreateGUI()
 			end
 
 			scale:GetPropertyChangedSignal('Scale'):Connect(function()
-				toggle.Text = string.rep(' ', 33 * scale.Scale)..togglesettings.Name
+				toggle.Text = string.rep(' ', 33 * scale.Scale)..togglesettings.Name
 			end)
 			toggle.MouseEnter:Connect(function()
 				hovered = true
@@ -2987,7 +2988,7 @@ function mainapi:CreateGUI()
 		button.BackgroundColor3 = uipallet.Main
 		button.BorderSizePixel = 0
 		button.AutoButtonColor = false
-		button.Text = '          '..categorysettings.Name
+		button.Text = '          '..categorysettings.Name
 		button.TextXAlignment = Enum.TextXAlignment.Left
 		button.TextColor3 = color.Dark(uipallet.Text, 0.16)
 		button.TextSize = 14
@@ -3084,7 +3085,7 @@ function mainapi:CreateGUI()
 			window.Size = UDim2.fromOffset(220, 45 + windowlist.AbsoluteContentSize.Y / scale.Scale)
 			for _, v in categoryapi.Buttons do
 				if v.Icon then
-					v.Object.Text = string.rep(' ', 33 * scale.Scale)..v.Name
+					v.Object.Text = string.rep(' ', 33 * scale.Scale)..v.Name
 				end
 			end
 		end)
@@ -3613,7 +3614,7 @@ function mainapi:CreateGUI()
 		window.Size = UDim2.fromOffset(220, 42 + windowlist.AbsoluteContentSize.Y / scale.Scale)
 		for _, v in categoryapi.Buttons do
 			if v.Icon then
-				v.Object.Text = string.rep(' ', 36 * scale.Scale)..v.Name
+				v.Object.Text = string.rep(' ', 36 * scale.Scale)..v.Name
 			end
 		end
 	end)
@@ -3720,7 +3721,7 @@ function mainapi:CreateCategory(categorysettings)
 		modulebutton.BackgroundColor3 = uipallet.Main
 		modulebutton.BorderSizePixel = 0
 		modulebutton.AutoButtonColor = false
-		modulebutton.Text = '            '..modulesettings.Name
+		modulebutton.Text = '            '..modulesettings.Name
 		modulebutton.TextXAlignment = Enum.TextXAlignment.Left
 		modulebutton.TextColor3 = color.Dark(uipallet.Text, 0.16)
 		modulebutton.TextSize = 14
@@ -5801,6 +5802,9 @@ mainapi:CreateCategory({
 })
 mainapi.Categories.Main:CreateDivider('misc')
 
+--[[
+	Friends
+]]
 local friends
 local friendscolor = {
 	Hue = 1,
@@ -5857,6 +5861,9 @@ friends:CreateToggle({
 mainapi:Clean(friends.Update)
 mainapi:Clean(friends.ColorUpdate)
 
+--[[
+	Profiles
+]]
 mainapi:CreateCategoryList({
 	Name = 'Profiles',
 	Icon = getcustomasset('FlowVape/assets/new/profilesicon.png'),
@@ -5866,6 +5873,9 @@ mainapi:CreateCategoryList({
 	Profiles = true
 })
 
+--[[
+	Targets
+]]
 local targets
 targets = mainapi:CreateCategoryList({
 	Name = 'Targets',
@@ -5883,6 +5893,10 @@ mainapi:CreateLegit()
 mainapi:CreateSearch()
 mainapi.Categories.Main:CreateOverlayBar()
 mainapi.Categories.Main:CreateSettingsDivider()
+
+--[[
+	General Settings
+]]
 
 local general = mainapi.Categories.Main:CreateSettingsPane({Name = 'General'})
 mainapi.MultiKeybind = general:CreateToggle({
@@ -5925,6 +5939,10 @@ general:CreateButton({
 	Tooltip = 'Reloads vape for debugging purposes'
 })
 
+--[[
+	Module Settings
+]]
+
 local modules = mainapi.Categories.Main:CreateSettingsPane({Name = 'Modules'})
 modules:CreateToggle({
 	Name = 'Teams by server',
@@ -5946,6 +5964,10 @@ modules:CreateToggle({
 		end
 	end
 })
+
+--[[
+	GUI Settings
+]]
 
 local guipane = mainapi.Categories.Main:CreateSettingsPane({Name = 'GUI'})
 mainapi.Blur = guipane:CreateToggle({
@@ -6091,6 +6113,10 @@ guipane:CreateButton({
 	Tooltip = 'Sorts GUI'
 })
 
+--[[
+	Notification Settings
+]]
+
 local notifpane = mainapi.Categories.Main:CreateSettingsPane({Name = 'Notifications'})
 mainapi.Notifications = notifpane:CreateToggle({
 	Name = 'Notifications',
@@ -6116,6 +6142,10 @@ mainapi.GUIColor = mainapi.Categories.Main:CreateGUISlider({
 	end
 })
 mainapi.Categories.Main:CreateBind()
+
+--[[
+	Text GUI
+]]
 
 local textgui = mainapi:CreateOverlay({
 	Name = 'Text GUI',
@@ -6318,6 +6348,10 @@ textguicolorcustom = textgui:CreateColorSlider({
 	Visible = false
 })
 
+--[[
+	Text GUI Objects
+]]
+
 local VapeLabels = {}
 local VapeLogo = Instance.new('ImageLabel')
 VapeLogo.Name = 'Logo'
@@ -6409,6 +6443,10 @@ VapeLabelSorter.HorizontalAlignment = Enum.HorizontalAlignment.Right
 VapeLabelSorter.VerticalAlignment = Enum.VerticalAlignment.Top
 VapeLabelSorter.SortOrder = Enum.SortOrder.LayoutOrder
 VapeLabelSorter.Parent = VapeLabelHolder
+
+--[[
+	Target Info
+]]
 
 local targetinfo
 local targetinfoobj
