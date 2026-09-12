@@ -1,40 +1,46 @@
-local players = game:GetService('Players')
-local inputService = game:GetService('UserInputService')
-local runService = game:GetService('RunService')
-local tweenService = game:GetService('TweenService')
-local httpService = game:GetService('HttpService')
-local lplr = players.LocalPlayer
-local playerGui = lplr:WaitForChild('PlayerGui')
+local plrs = game:GetService('Players')
+local uis = game:GetService('UserInputService')
+local rs = game:GetService('RunService')
+local ts = game:GetService('TweenService')
+local hs = game:GetService('HttpService')
 
-local isfile = isfile or function(file)
-	local suc, res = pcall(function()
-		return readfile(file)
-	end)
-	return suc and res ~= nil and res ~= ''
-end
-local delfile = delfile or function(file)
-	writefile(file, '')
+local lplr = plrs.LocalPlayer
+local pgui = lplr:WaitForChild('PlayerGui')
+
+local isfile = isfile or function(path)
+	local s, res = pcall(readfile, path)
+	return s and res ~= nil and res ~= ''
 end
 
-local BASE = 'https://raw.githubusercontent.com/complexwaremain/FlowVape/main/'
+local delfile = delfile or function(path)
+	writefile(path, '')
+end
 
-if not game:IsLoaded() then game.Loaded:Wait() end
+local repo = 'https://raw.githubusercontent.com/complexwaremain/FlowVape/main/'
+
+if not game:IsLoaded() then
+	game.Loaded:Wait()
+end
+
 local scale = math.clamp(workspace.CurrentCamera.ViewportSize.Y / 800, 0.75, 1.8)
 
-local function wipeFolder(path)
-	if not isfolder(path) then return end
-	local ok, files = pcall(listfiles, path)
-	if not ok then return end
-	for _, file in ipairs(files) do
-		if file:find('loader') then continue end
-		if isfile(file) and select(1, readfile(file):find('--This watermark is used to delete the file if its cached, remove it to make the file persist after vape updates.')) == 1 then
-			delfile(file)
+local function wipe(folder)
+	if not isfolder(folder) then return end
+	local s, list = pcall(listfiles, folder)
+	if not s then return end
+
+	for _, v in pairs(list) do
+		if not v:find('loader') and isfile(v) then
+			local content = readfile(v)
+			if content and content:find('^--This watermark is used to delete the file') then
+				delfile(v)
+			end
 		end
 	end
 end
 
-local function setupFolders()
-	for _, folder in {
+local function init_dirs()
+	local dirs = {
 		'FlowVape',
 		'FlowVape/games',
 		'FlowVape/profiles',
@@ -42,177 +48,180 @@ local function setupFolders()
 		'FlowVape/assets',
 		'FlowVape/assets/new',
 		'FlowVape/libraries',
-		'FlowVape/guis',
-	} do
-		if not isfolder(folder) then
-			makefolder(folder)
+		'FlowVape/guis'
+	}
+	for i = 1, #dirs do
+		if not isfolder(dirs[i]) then
+			makefolder(dirs[i])
 		end
 	end
 end
 
-local function handleCommit()
+local function check_commit()
 	if shared.VapeDeveloper then return end
-	local _, subbed = pcall(function()
+	local s, raw = pcall(function()
 		return game:HttpGet('https://github.com/complexwaremain/FlowVape')
 	end)
-	local commit = subbed and subbed:find('currentOid') or nil
-	commit = commit and subbed:sub(commit + 13, commit + 52) or nil
-	commit = commit and #commit == 40 and commit or 'main'
-	if commit == 'main' or (isfile('FlowVape/profiles/commit.txt') and readfile('FlowVape/profiles/commit.txt') or '') ~= commit then
-		wipeFolder('FlowVape')
-		wipeFolder('FlowVape/games')
-		wipeFolder('FlowVape/guis')
-		wipeFolder('FlowVape/libraries')
-		wipeFolder('FlowVape/profiles')
-		wipeFolder('FlowVape/profilesmobile')
-		wipeFolder('FlowVape/assets/new')
+	
+	local commit = raw and raw:match('currentOid.-(%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x)') or 'main'
+	local cur = isfile('FlowVape/profiles/commit.txt') and readfile('FlowVape/profiles/commit.txt') or ''
+	
+	if commit == 'main' or cur ~= commit then
+		wipe('FlowVape')
+		wipe('FlowVape/games')
+		wipe('FlowVape/guis')
+		wipe('FlowVape/libraries')
+		wipe('FlowVape/profiles')
+		wipe('FlowVape/profilesmobile')
+		wipe('FlowVape/assets/new')
 	end
 	pcall(writefile, 'FlowVape/profiles/commit.txt', commit)
 end
 
-local SHARED_FILES = {
+local shared_files = {
 	'gui.txt',
 	'commit.txt',
 	'2619619496.gui.txt',
 	'default6872274481.txt',
-	'default6872265039.txt',
+	'default6872265039.txt'
 }
 
-local PC_PROFILES = {
+local pc = {
 	'Legit6872274481.txt',
 	'Blatant6872274481.txt',
 	'Legit6872265039.txt',
-	'Blatant6872265039.txt',
+	'Blatant6872265039.txt'
 }
 
-local MOB_PROFILES = {
+local mobile = {
 	'legitMob6872274481.txt',
-	'blatantMob6872274481.txt',
-	'legitMob6872265039.txt',
 	'blatantMob6872265039.txt',
+	'legitMob6872265039.txt',
+	'blatantMob6872274481.txt'
 }
 
-local GAME_FILES = {
+local game_scripts = {
 	'6872274481.lua',
 	'6872265039.lua',
 	'8560631822.lua',
-	'8444591321.lua',
+	'8444591321.lua'
 }
 
-local function dlFile(url, dest)
-	local ok, data = pcall(function() return game:HttpGet(url) end)
-	if ok and data and data ~= '404: Not Found' then
-		pcall(writefile, dest, data)
+local function download(url, path)
+	local s, body = pcall(game.HttpGet, game, url)
+	if s and body and body ~= '404: Not Found' then
+		pcall(writefile, path, body)
 	end
 end
 
-local function clearProfiles(isMobile)
-	local allowed = {}
-	for _, f in ipairs(SHARED_FILES) do allowed[f] = true end
-	if isMobile then
-		for _, f in ipairs(MOB_PROFILES) do allowed[f] = true end
-	else
-		for _, f in ipairs(PC_PROFILES) do allowed[f] = true end
-	end
-	local ok, files = pcall(listfiles, 'FlowVape/profiles')
-	if not ok then return end
-	for _, file in ipairs(files) do
-		local fname = file:match('[^/\\]+$')
-		if fname and fname:sub(-4) == '.txt' and not fname:match('%.lua$') and not allowed[fname] then
-			pcall(delfile, file)
+local function clean_profiles(is_mobile)
+	local whitelist = {}
+	for _, v in pairs(shared_files) do whitelist[v] = true end
+	
+	local target = is_mobile and mobile or pc
+	for _, v in pairs(target) do whitelist[v] = true end
+
+	local s, files = pcall(listfiles, 'FlowVape/profiles')
+	if not s then return end
+
+	for _, path in pairs(files) do
+		local name = path:match('([^/\\]+)$')
+		if name and name:sub(-4) == '.txt' and not name:find('%.lua$') and not whitelist[name] then
+			pcall(delfile, path)
 		end
 	end
 end
 
-local function downloadProfiles(isMobile)
-	clearProfiles(isMobile)
-	for i = 1, #SHARED_FILES do
-		dlFile(BASE..'profiles/'..SHARED_FILES[i], 'FlowVape/profiles/'..SHARED_FILES[i])
+local function get_profiles(is_mobile)
+	clean_profiles(is_mobile)
+	for i = 1, #shared_files do
+		download(repo .. 'profiles/' .. shared_files[i], 'FlowVape/profiles/' .. shared_files[i])
 	end
-	if isMobile then
-		for i = 1, #MOB_PROFILES do
-			dlFile(BASE..'profilesmobile/'..MOB_PROFILES[i], 'FlowVape/profiles/'..MOB_PROFILES[i])
-		end
-	else
-		for i = 1, #PC_PROFILES do
-			dlFile(BASE..'profiles/'..PC_PROFILES[i], 'FlowVape/profiles/'..PC_PROFILES[i])
-		end
+	
+	local profs = is_mobile and mobile or pc
+	local dir = is_mobile and 'profilesmobile/' or 'profiles/'
+	for i = 1, #profs do
+		download(repo .. dir .. profs[i], 'FlowVape/profiles/' .. profs[i])
 	end
 end
 
-local function downloadGames()
-	for i = 1, #GAME_FILES do
-		dlFile(BASE..'games/'..GAME_FILES[i], 'FlowVape/games/'..GAME_FILES[i])
+local function get_games()
+	for i = 1, #game_scripts do
+		download(repo .. 'games/' .. game_scripts[i], 'FlowVape/games/' .. game_scripts[i])
 	end
 end
 
-local function downloadAssets()
+local function get_assets()
 	if not isfolder('FlowVape/assets/new') then
 		makefolder('FlowVape/assets/new')
 	end
-	local ok, response = pcall(function()
-		return game:HttpGet('https://api.github.com/repos/complexwaremain/FlowVape/contents/assets/new?ref=main')
-	end)
-	if not ok or not response then return end
-	local files = {}
-	local decOk, decoded = pcall(function()
-		return httpService:JSONDecode(response)
-	end)
-	if decOk and type(decoded) == 'table' then
-		for _, f in ipairs(decoded) do
-			if f.type == 'file' and f.name and f.download_url then
-				table.insert(files, {name = f.name, url = f.download_url})
+	
+	local s, res = pcall(game.HttpGet, game, 'https://api.github.com/repos/complexwaremain/FlowVape/contents/assets/new?ref=main')
+	if not s or not res then return end
+	
+	local parsed
+	pcall(function() parsed = hs:JSONDecode(res) end)
+	
+	if type(parsed) == 'table' then
+		for _, item in pairs(parsed) do
+			if item.type == 'file' and item.name and item.download_url then
+				download(item.download_url, 'FlowVape/assets/new/' .. item.name)
 			end
 		end
 	end
-	for _, f in ipairs(files) do
-		dlFile(f.url, 'FlowVape/assets/new/'..f.name)
-	end
 end
 
-local function runLoad(isMobile, statusLabel)
-	setupFolders()
-	if statusLabel then statusLabel.Text = 'Checking for updates...' end
+local function run_load(is_mobile, lbl)
+	init_dirs()
+	if lbl then lbl.Text = 'Checking for updates...' end
 	task.wait(0.2)
-	handleCommit()
-	if statusLabel then statusLabel.Text = 'Downloading profiles...' end
+	
+	check_commit()
+	if lbl then lbl.Text = 'Downloading profiles...' end
 	task.wait(0.1)
-	downloadProfiles(isMobile)
-	if statusLabel then statusLabel.Text = 'Downloading game scripts...' end
+	
+	get_profiles(is_mobile)
+	if lbl then lbl.Text = 'Downloading game scripts...' end
 	task.wait(0.1)
-	downloadGames()
-	if statusLabel then statusLabel.Text = 'Downloading assets...' end
+	
+	get_games()
+	if lbl then lbl.Text = 'Downloading assets...' end
 	task.wait(0.1)
-	downloadAssets()
-	if statusLabel then statusLabel.Text = 'Loading FlowVape...' end
+	
+	get_assets()
+	if lbl then lbl.Text = 'Loading FlowVape...' end
 	task.wait(0.2)
-	shared.FlowVapeIsMobile = isMobile
-	local maincontent = game:HttpGet(BASE..'main.lua')
-	pcall(writefile, 'FlowVape/main.lua', maincontent)
-	local func, err = loadstring(maincontent, 'main')
-	if not func then
-		return false, 'Syntax error in main.lua: '..tostring(err)
+	
+	shared.FlowVapeIsMobile = is_mobile
+	
+	local src = game:HttpGet(repo .. 'main.lua')
+	pcall(writefile, 'FlowVape/main.lua', src)
+	
+	local fn, err = loadstring(src, 'main')
+	if not fn then
+		return false, 'Syntax error: ' .. tostring(err)
 	end
-	local ok2, err2 = pcall(func)
-	if not ok2 then
-		return false, tostring(err2)
+	
+	local run_ok, run_err = pcall(fn)
+	if not run_ok then
+		return false, tostring(run_err)
 	end
+	
 	return true
 end
 
-setupFolders()
+init_dirs()
 
 if isfile('FlowVape/device.txt') then
-	local saved = readfile('FlowVape/device.txt')
-	local isMobile = saved == 'mobile'
-	local ok, err = runLoad(isMobile, nil)
-	if ok then
+	local mode = readfile('FlowVape/device.txt')
+	local s, err = run_load(mode == 'mobile', nil)
+	if s then
 		if shared.vape then
 			shared.vape:CreateNotification('FlowVape', 'Loaded - thanks for using FlowVape!', 2)
 		end
 	else
 		pcall(delfile, 'FlowVape/device.txt')
-		warn('[FlowVape] Load error: '..tostring(err))
+		warn('[FlowVape] Load error: ' .. tostring(err))
 	end
 	return
 end
@@ -222,7 +231,7 @@ sg.Name = 'FlowVapeInstaller'
 sg.ResetOnSpawn = false
 sg.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 sg.IgnoreGuiInset = true
-sg.Parent = playerGui
+sg.Parent = pgui
 
 local card = Instance.new('Frame')
 card.Name = 'Card'
@@ -271,16 +280,10 @@ Instance.new('UICorner', dot).CornerRadius = UDim.new(1, 0)
 local rainbow = Instance.new('Frame')
 rainbow.Size = UDim2.new(1, 0, 0, 2 * scale)
 rainbow.Position = UDim2.new(0, 0, 1, -2 * scale)
-rainbow.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
+rainbow.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 rainbow.BorderSizePixel = 0
 rainbow.Parent = topbar
 local grad = Instance.new('UIGradient', rainbow)
-grad.Color = ColorSequence.new({
-	ColorSequenceKeypoint.new(0, Color3.fromRGB(248, 113, 113)),
-	ColorSequenceKeypoint.new(0.33, Color3.fromRGB(96, 165, 250)),
-	ColorSequenceKeypoint.new(0.66, Color3.fromRGB(192, 132, 252)),
-	ColorSequenceKeypoint.new(1, Color3.fromRGB(248, 113, 113)),
-})
 
 local body = Instance.new('Frame')
 body.Size = UDim2.new(1, 0, 1, -38 * scale)
@@ -355,12 +358,12 @@ local function makeBtn(name, desc, icon, xOffset, accentColor)
 	dl.Font = Enum.Font.Gotham
 	dl.Parent = btn
 	btn.MouseEnter:Connect(function()
-		tweenService:Create(btn, TweenInfo.new(0.12), {BackgroundColor3 = Color3.fromRGB(28, 27, 31)}):Play()
-		tweenService:Create(s, TweenInfo.new(0.12), {Color = accentColor}):Play()
+		ts:Create(btn, TweenInfo.new(0.12), {BackgroundColor3 = Color3.fromRGB(28, 27, 31)}):Play()
+		ts:Create(s, TweenInfo.new(0.12), {Color = accentColor}):Play()
 	end)
 	btn.MouseLeave:Connect(function()
-		tweenService:Create(btn, TweenInfo.new(0.12), {BackgroundColor3 = Color3.fromRGB(23, 22, 25)}):Play()
-		tweenService:Create(s, TweenInfo.new(0.12), {Color = Color3.fromRGB(40, 38, 44)}):Play()
+		ts:Create(btn, TweenInfo.new(0.12), {BackgroundColor3 = Color3.fromRGB(23, 22, 25)}):Play()
+		ts:Create(s, TweenInfo.new(0.12), {Color = Color3.fromRGB(40, 38, 44)}):Play()
 	end)
 	return btn
 end
@@ -381,48 +384,50 @@ statusLabel.TextYAlignment = Enum.TextYAlignment.Center
 statusLabel.Parent = body
 
 local hue = 0
-local rainbowConn = runService.RenderStepped:Connect(function()
-	hue = (hue + 0.003) % 1
+local rainbowConn = rs.RenderStepped:Connect(function()
+	hue = (hue + 0.005) % 1
 	grad.Color = ColorSequence.new({
-		ColorSequenceKeypoint.new(0, Color3.fromHSV(hue, 0.8, 1)),
-		ColorSequenceKeypoint.new(0.33, Color3.fromHSV((hue + 0.33) % 1, 0.8, 1)),
-		ColorSequenceKeypoint.new(0.66, Color3.fromHSV((hue + 0.66) % 1, 0.8, 1)),
-		ColorSequenceKeypoint.new(1, Color3.fromHSV(hue, 0.8, 1)),
+		ColorSequenceKeypoint.new(0, Color3.fromHSV(hue, 1, 1)),
+		ColorSequenceKeypoint.new(0.2, Color3.fromHSV((hue + 0.2) % 1, 1, 1)),
+		ColorSequenceKeypoint.new(0.4, Color3.fromHSV((hue + 0.4) % 1, 1, 1)),
+		ColorSequenceKeypoint.new(0.6, Color3.fromHSV((hue + 0.6) % 1, 1, 1)),
+		ColorSequenceKeypoint.new(0.8, Color3.fromHSV((hue + 0.8) % 1, 1, 1)),
+		ColorSequenceKeypoint.new(1, Color3.fromHSV(hue, 1, 1)),
 	})
 end)
 
 local dragging = false
 local dragStart, startPos
-topbar.InputBegan:Connect(function(i)
-	if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+topbar.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 		dragging = true
-		dragStart = i.Position
+		dragStart = input.Position
 		startPos = card.Position
 	end
 end)
-inputService.InputChanged:Connect(function(i)
-	if dragging and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
-		local d = i.Position - dragStart
-		card.Position = UDim2.fromOffset(startPos.X.Offset + d.X, startPos.Y.Offset + d.Y)
+uis.InputChanged:Connect(function(input)
+	if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+		local delta = input.Position - dragStart
+		card.Position = UDim2.fromOffset(startPos.X.Offset + delta.X, startPos.Y.Offset + delta.Y)
 	end
 end)
-inputService.InputEnded:Connect(function(i)
-	if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+uis.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 		dragging = false
 	end
 end)
 
-local function load(isMobile)
+local function start(is_mobile)
 	pcBtn.Active = false
 	mobBtn.Active = false
 	statusLabel.Text = 'Setting up folders...'
 	statusLabel.TextColor3 = Color3.fromRGB(120, 118, 125)
 	task.wait(0.2)
 
-	local ok, err = runLoad(isMobile, statusLabel)
+	local s, err = run_load(is_mobile, statusLabel)
 
-	if ok then
-		pcall(writefile, 'FlowVape/device.txt', isMobile and 'mobile' or 'pc')
+	if s then
+		pcall(writefile, 'FlowVape/device.txt', is_mobile and 'mobile' or 'pc')
 		rainbowConn:Disconnect()
 		sg:Destroy()
 		task.wait(0.3)
@@ -431,12 +436,12 @@ local function load(isMobile)
 		end
 	else
 		pcall(delfile, 'FlowVape/device.txt')
-		statusLabel.Text = 'Error: '..tostring(err):sub(1, 50)
+		statusLabel.Text = 'Error: ' .. tostring(err):sub(1, 50)
 		statusLabel.TextColor3 = Color3.fromRGB(248, 113, 113)
 		pcBtn.Active = true
 		mobBtn.Active = true
 	end
 end
 
-pcBtn.MouseButton1Click:Connect(function() load(false) end)
-mobBtn.MouseButton1Click:Connect(function() load(true) end)
+pcBtn.MouseButton1Click:Connect(function() start(false) end)
+mobBtn.MouseButton1Click:Connect(function() start(true) end)
