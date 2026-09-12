@@ -158,6 +158,17 @@ local function addCorner(parent, radius)
 	local corner = Instance.new('UICorner')
 	corner.CornerRadius = radius or UDim.new(0, 10)
 	corner.Parent = parent
+	local gradient = Instance.new('UIGradient')
+	gradient.Rotation = 90
+	gradient.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(18, 18, 24)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(12, 12, 16))
+	})
+	gradient.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0),
+		NumberSequenceKeypoint.new(1, 0.3)
+	})
+	gradient.Parent = parent
 
 	return corner
 end
