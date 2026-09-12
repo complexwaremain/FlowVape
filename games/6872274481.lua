@@ -11316,3 +11316,941 @@ run(function()
         Darker = true
     })
 end)
+
+run(function()
+    local AutoFarmer
+    local Harvest
+    local Collect
+    local Range
+    local Delay
+    local nextAction = 0
+    
+    local drops = {
+        carrot = true,
+        carrot_seeds = true,
+        melon = true,
+        melon_seeds = true,
+        watermelon = true,
+        pumpkin = true,
+        pumpkin_block = true,
+        pumpkin_seeds = true
+    }
+    
+    local function harvestCrop(origin)
+        for _, v in collectionService:GetTagged('HarvestableCrop') do
+            local owner = v:GetAttribute('PlacedByUserId') or 0
+            local player = owner ~= 0 and playersService:GetPlayerByUserId(owner)
+            if v:IsA('BasePart') and (v.Position - origin).Magnitude <= Range.Value and (not player or player:GetAttribute('Team') == lplr:GetAttribute('Team')) then
+                bedwars.Handler:Get('CropHarvest'):Fire('CallServer', {
+                    position = bedwars.BlockController:getBlockPosition(v.Position)
+                })
+                return true
+            end
+        end
+        return false
+    end
+    
+    local function collectDrop(origin)
+        for _, v in collectionService:GetTagged('ItemDrop') do
+            if drops[v.Name] and (v:GetAttribute('PickupReadyTime') or math.huge) < workspace:GetServerTimeNow() and (v.Position - origin).Magnitude <= Range.Value then
+                bedwars.Handler:Get('PickupItemDrop'):Fire('CallServerAsync', {itemDrop = v})
+                return true
+            end
+        end
+        return false
+    end
+    
+    AutoFarmer = vape.Categories.Kits:CreateModule({
+        Name = 'AutoFarmer',
+        Function = function(callback)
+            if callback then
+                nextAction = 0
+    
+                repeat
+                    if entitylib.isAlive and store.equippedKit == 'farmer_cletus' and tick() >= nextAction then
+                        local origin = entitylib.character.RootPart.Position
+                        if (Harvest.Enabled and harvestCrop(origin)) or (Collect.Enabled and collectDrop(origin)) then
+                            nextAction = tick() + Delay.Value
+                        end
+                    end
+                    task.wait(0.1)
+                until not AutoFarmer.Enabled
+            end
+        end,
+        Tooltip = 'Auto farms crops and picks up drops for Cletus'
+    })
+    
+    Harvest = AutoFarmer:CreateToggle({
+        Name = 'Harvest crops',
+        Default = true,
+        Tooltip = 'Auto harvests fully grown crops around you'
+    })
+    Collect = AutoFarmer:CreateToggle({
+        Name = 'Collect drops',
+        Default = true,
+        Tooltip = 'Auto picks up nearby crop drops and seeds'
+    })
+    Range = AutoFarmer:CreateSlider({
+        Name = 'Range',
+        Min = 1,
+        Max = 60,
+        Default = 25,
+        Suffix = function(val)
+            return val <= 1 and 'stud' or 'studs'
+        end,
+        Tooltip = 'How far it reaches to harvest and collect'
+    })
+    AutoFarmer:CreateButton({
+        Name = 'Sync to legit range',
+        Function = function()
+            Range:SetValue(6)
+        end,
+        Tooltip = 'Sets range to the default legit reach'
+    })
+    Delay = AutoFarmer:CreateSlider({
+        Name = 'Delay',
+        Min = 0.05,
+        Max = 3,
+        Default = 0.15,
+        Decimal = 100,
+        Suffix = function(val)
+            return val <= 1 and 'sec' or 'secs'
+        end,
+        Tooltip = 'Wait time between actions to avoid lagging'
+    })
+end)
+
+run(function()
+    local AutoFlora
+    local Mode
+    local Height
+    local Speed
+    local nextGlide = 0
+    
+    AutoFlora = vape.Categories.Kits:CreateModule({
+        Name = 'AutoFlora',
+        Function = function(callback)
+            if callback then
+                nextGlide = 0
+    
+                repeat
+                    if entitylib.isAlive and store.equippedKit == 'queen_bee' and tick() >= nextGlide and bedwars.AbilityController:canUseAbility('QUEEN_BEE_GLIDE', {disableBlockedAbilityAlert = true}) then
+                        local root = entitylib.character.RootPart
+    
+                        if root.AssemblyLinearVelocity.Y <= -Speed.Value then
+                            local drop = Mode.Value == 'Void' and 2000 or Height.Value
+                            local ground = workspace:Raycast(root.Position, Vector3.new(0, -drop, 0), store.airRay)
+    
+                            if not ground then
+                                nextGlide = tick() + 1
+                                bedwars.AbilityController:useAbility('QUEEN_BEE_GLIDE')
+                            end
+                        end
+                    end
+                    task.wait(0.05)
+                until not AutoFlora.Enabled
+            end
+        end,
+        Tooltip = 'Auto uses Queen Bee glide before you hit the void'
+    })
+    
+    Mode = AutoFlora:CreateDropdown({
+        Name = 'Mode',
+        List = {'Void', 'Any Drop'},
+        Default = 'Void',
+        Function = function(val)
+            if Height then
+                Height.Object.Visible = val == 'Any Drop'
+            end
+        end,
+        Tooltip = 'Void only triggers over the void, Any Drop triggers for long falls'
+    })
+    Height = AutoFlora:CreateSlider({
+        Name = 'Ground check',
+        Min = 5,
+        Max = 200,
+        Default = 40,
+        Visible = false,
+        Suffix = function(val)
+            return val <= 1 and 'stud' or 'studs'
+        end,
+        Tooltip = 'How far down to check for ground in Any Drop mode'
+    })
+    Speed = AutoFlora:CreateSlider({
+        Name = 'Fall speed',
+        Min = 1,
+        Max = 100,
+        Default = 20,
+        Tooltip = 'How fast you need to be falling before it triggers'
+    })
+    
+end)
+
+run(function()
+    local AutoFreiya
+    local Range
+    local Stacks
+    local Delay
+    
+    local cooldown = 0
+    
+    AutoFreiya = vape.Categories.Kits:CreateModule({
+        Name = 'AutoFreiya',
+        Function = function(callback)
+            if callback then
+                repeat
+                    if entitylib.isAlive and store.equippedKit == 'ice_queen' and tick() >= cooldown and bedwars.AbilityController:canUseAbility('ice_queen', {disableBlockedAbilityAlert = true}) then
+                        local origin = entitylib.character.RootPart.Position
+                        for _, v in entitylib.List do
+                            if v.Targetable and (v.Character:GetAttribute('IceQueenStacks') or 0) >= Stacks.Value and (v.RootPart.Position - origin).Magnitude <= Range.Value then
+                                cooldown = tick() + Delay.Value
+                                bedwars.AbilityController:useAbility('ice_queen')
+                                break
+                            end
+                        end
+                    end
+                    task.wait(0.1)
+                until not AutoFreiya.Enabled
+            end
+        end,
+        Tooltip = 'Auto pops ice stacks on enemies near you'
+    })
+    
+    Range = AutoFreiya:CreateSlider({
+        Name = 'Range',
+        Min = 1,
+        Max = 60,
+        Default = 40,
+        Suffix = function(val)
+            return val <= 1 and 'stud' or 'studs'
+        end,
+        Tooltip = 'How far it reaches to find enemies to detonate'
+    })
+    Delay = AutoFreiya:CreateSlider({
+        Name = 'Delay',
+        Min = 0,
+        Max = 2,
+        Default = 0,
+        Decimal = 100,
+        Suffix = 'seconds',
+        Tooltip = 'Wait time between detonations'
+    })
+    Stacks = AutoFreiya:CreateSlider({
+        Name = 'Stacks',
+        Min = 1,
+        Max = 10,
+        Default = 3,
+        Tooltip = 'How many ice stacks an enemy needs before it pops'
+    })
+end)
+
+run(function()
+    local AutoGingerbread
+    local Range
+    local Delay
+    local Break
+    local Place
+    local PlaceDelay
+    local Jump
+    local Switch
+    local OwnOnly
+    local SuccessfulOnly
+    
+    local old
+    local nextPlace = 0
+    
+    AutoGingerbread = vape.Categories.Kits:CreateModule({
+        Name = 'AutoGingerbreadMan',
+        Function = function(callback)
+            if callback then
+                nextPlace = 0
+                AutoGingerbread:Clean(runService.Heartbeat:Connect(function()
+                    if Place.Enabled and entitylib.isAlive and store.equippedKit == 'gingerbread_man' and tick() >= nextPlace and canPlace() and getItem('gumdrop_bounce_pad') then
+                        local pos = roundPos(entitylib.character.RootPart.Position - Vector3.new(0, entitylib.character.HipHeight + 1.5, 0))
+                        if not getPlacedBlock(pos) then
+                            nextPlace = tick() + math.max(PlaceDelay.Value, 1 / bedwars.SharedConstants.BLOCK_PLACE_CPS)
+                            bedwars.placeBlock(pos, 'gumdrop_bounce_pad')
+                        end
+                    end
+                end))
+    
+                old = bedwars.LaunchPadController.attemptLaunch
+                bedwars.LaunchPadController.attemptLaunch = function(self, block, ...)
+                    local lastLaunch = self and self.lastLaunch or 0
+                    local call = old(self, block, ...)
+    
+                    if not SuccessfulOnly.Enabled or self and self.lastLaunch and self.lastLaunch ~= lastLaunch then
+                        if Break.Enabled and entitylib.isAlive and store.equippedKit == 'gingerbread_man' and block and block:IsA('BasePart') and (not OwnOnly.Enabled or block:GetAttribute('PlacedByUserId') == lplr.UserId) and (block.Position - entitylib.character.RootPart.Position).Magnitude <= Range.Value then
+                            task.delay(Delay.Value, function()
+                                if AutoGingerbread.Enabled and block.Parent then
+                                    if Switch.Enabled then
+                                        local itemmeta = bedwars.ItemMeta[block.Name]
+                                        local breaktype = itemmeta and itemmeta.block and itemmeta.block.breakType
+                                        local tool = breaktype and store.tools[breaktype] or store.tools.sword
+                                        local slot = tool and getHotbar(tool.tool)
+                                        if slot then
+                                            hotbarSwitch(slot)
+                                        elseif tool then
+                                            switchItem(tool.tool)
+                                        end
+                                    end
+                                    bedwars.breakBlock(block, false, nil, nil, Switch.Enabled)
+                                end
+                            end)
+                        end
+    
+                        if Jump.Enabled and entitylib.isAlive then
+                            entitylib.character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                        end
+                    end
+                    return call
+                end
+            else
+                bedwars.LaunchPadController.attemptLaunch = old
+            end
+        end,
+        Tooltip = 'Spams, breaks, and uses Gingerbread Man pads automatically'
+    })
+    
+    Place = AutoGingerbread:CreateToggle({
+        Name = 'Place pads',
+        Function = function(call)
+            if PlaceDelay then
+                PlaceDelay.Object.Visible = call
+            end
+        end,
+        Tooltip = 'Auto places a pad under your feet if the space is empty',
+        Default = true
+    })
+    PlaceDelay = AutoGingerbread:CreateSlider({
+        Name = 'Place delay',
+        Min = 0,
+        Max = 1,
+        Default = 0,
+        Decimal = 100,
+        Darker = true,
+        Suffix = function(val)
+            return val == 1 and 'sec' or 'secs'
+        end,
+        Tooltip = 'Cooldown between placing pads'
+    })
+    Break = AutoGingerbread:CreateToggle({
+        Name = 'Break launch pad',
+        Function = function(call)
+            if Range then
+                Range.Object.Visible = call
+                Delay.Object.Visible = call
+                Switch.Object.Visible = call
+                OwnOnly.Object.Visible = call
+            end
+        end,
+        Default = true,
+        Tooltip = 'Auto breaks pads you launch off of'
+    })
+    Jump = AutoGingerbread:CreateToggle({
+        Name = 'Jump after launch',
+        Tooltip = 'Auto jumps when you hit a pad'
+    })
+    
+    Switch = AutoGingerbread:CreateToggle({
+        Name = 'Legit switch',
+        Darker = true,
+        Tooltip = 'Switches to the correct tool before breaking the pad'
+    })
+    OwnOnly = AutoGingerbread:CreateToggle({
+        Name = 'Own pads only',
+        Default = true,
+        Darker = true,
+        Tooltip = 'Only breaks pads placed by you'
+    })
+    SuccessfulOnly = AutoGingerbread:CreateToggle({
+        Name = 'Successful launch only',
+        Default = true,
+        Tooltip = 'Only breaks the pad if you actually launched off it'
+    })
+    Range = AutoGingerbread:CreateSlider({
+        Name = 'Range',
+        Min = 1,
+        Max = 30,
+        Default = 30,
+        Darker = true,
+        Suffix = function(val)
+            return val <= 1 and 'stud' or 'studs'
+        end,
+        Tooltip = 'How far it reaches to break pads'
+    })
+    Delay = AutoGingerbread:CreateSlider({
+        Name = 'Break delay',
+        Min = 0,
+        Max = 1,
+        Default = 0.05,
+        Decimal = 100,
+        Darker = true,
+        Suffix = function(val)
+            return val == 1 and 'sec' or 'secs'
+        end,
+        Tooltip = 'Delay before breaking the pad after launching'
+    })
+end)
+
+run(function()
+    local AutoGrim
+    local Range
+    local Health
+    local Delay
+    
+    local Legit = getFunctionRange(bedwars.GrimReaperController.registerSoulInteractions) or 0
+    
+    AutoGrim = vape.Categories.Kits:CreateModule({
+        Name = 'AutoGrim',
+        Function = function(callback)
+            if callback then
+                local souls = collection(bedwars.GrimReaperController.soulsByPosition, AutoGrim)
+                local cooldown = 0
+    
+                repeat
+                    if entitylib.isAlive and lplr.Character:GetAttribute('Health') <= (lplr.Character:GetAttribute('MaxHealth') * (Health.Value / 100)) and not lplr.Character:GetAttribute('GrimReaperChannel') and (Delay.Value <= 0 or tick() - cooldown >= Delay.Value) then
+                        local localPosition = entitylib.character.RootPart.Position
+                        for _, v in souls do
+                            if (localPosition - v.Position).Magnitude <= Range.Value then
+                                bedwars.Handler:Get('ConsumeGrimReaperSoul'):Fire('CallServer', {
+                                    secret = v:GetAttribute('GrimReaperSoulSecret')
+                                })
+                                cooldown = tick()
+                                break
+                            end
+                        end
+                    end
+                    task.wait(0.1)
+                until not AutoGrim.Enabled
+            end
+        end,
+        Tooltip = 'Auto eats souls around you when you get low'
+    })
+    
+    Range = AutoGrim:CreateSlider({
+        Name = 'Range',
+        Min = 1,
+        Max = 120,
+        Default = 12,
+        Suffix = function(val)
+            return val <= 1 and 'stud' or 'studs'
+        end,
+        Tooltip = 'How far it reaches to find souls'
+    })
+    AutoGrim:CreateButton({
+        Name = 'Sync to legit range',
+        Function = function()
+            Range:SetValue(Legit)
+        end,
+        Tooltip = 'Sets range to the default legit reach'
+    })
+    Health = AutoGrim:CreateSlider({
+        Name = 'Health',
+        Min = 1,
+        Max = 100,
+        Default = 25,
+        Suffix = function()
+            return '%'
+        end,
+        Tooltip = 'Health percentage to drop to before eating a soul'
+    })
+    Delay = AutoGrim:CreateSlider({
+        Name = 'Delay',
+        Min = 0,
+        Max = 2,
+        Default = 0.1,
+        Decimal = 10,
+        Suffix = 'seconds',
+        Tooltip = 'Cooldown between eating souls'
+    })
+end)
+
+run(function()
+    local AutoGrove
+    local Delay
+    local nextWater = 0
+    
+    AutoGrove = vape.Categories.Kits:CreateModule({
+        Name = 'AutoGrove',
+        Function = function(callback)
+            if callback then
+                nextWater = 0
+    
+                repeat
+                    if entitylib.isAlive and store.equippedKit == 'spirit_gardener' and tick() >= nextWater and bedwars.AbilityController:canUseAbility('spirit_gardener_water', {disableBlockedAbilityAlert = true}) then
+                        nextWater = tick() + Delay.Value
+                        bedwars.AbilityController:useAbility('spirit_gardener_water')
+                    end
+                    task.wait(0.1)
+                until not AutoGrove.Enabled
+            end
+        end,
+        Tooltip = 'Auto waters your spirit flowers so they dont die'
+    })
+    
+    Delay = AutoGrove:CreateSlider({
+        Name = 'Delay',
+        Min = 0.5,
+        Max = 20,
+        Default = 3,
+        Decimal = 10,
+        Suffix = function(val)
+            return val <= 1 and 'sec' or 'secs'
+        end,
+        Tooltip = 'How often it casts the water ability'
+    })
+end)
+
+run(function()
+    local AutoHannah
+    local Targets
+    local Sort
+    local Range
+    local AuraTarget
+    local attempted = setmetatable({}, {__mode = 'k'})
+    
+    AutoHannah = vape.Categories.Kits:CreateModule({
+        Name = 'AutoHannah',
+        Function = function(callback)
+            if callback then
+                repeat
+                    if entitylib.isAlive and store.equippedKit == 'hannah' and not bedwars.StatusEffectUtil:isActive(lplr.Character, 'grounded') and not bedwars.StatusEffectUtil:isActive(lplr.Character, 'frosted') then
+                        local threshold = bedwars.BalanceFile.HANNAH_BASE_EXECUTE_THRESHOLD + (bedwars.BalanceFile.HANNAH_MAX_COMBO * bedwars.BalanceFile.HANNAH_COMBO_EXECUTE_BOOST)
+    
+                        for _, v in entitylib.AllPosition({
+                            Origin = entitylib.character.RootPart.Position,
+                            Range = Range.Value,
+                            Part = 'RootPart',
+                            Players = Targets.Players.Enabled,
+                            NPCs = Targets.NPCs.Enabled,
+                            Priority = Targets.Priority.Value,
+                            Sort = sortmethods[Sort.Value]
+                        }) do
+                            if v.Character:HasTag('HannahExecuteInteraction') and v.Health <= v.MaxHealth * threshold and (not AuraTarget.Enabled or (targetinfo.Targets[v] or 0) > tick()) and (not attempted[v.Character] or tick() - attempted[v.Character] >= 0.3) then
+                                attempted[v.Character] = tick()
+    
+                                if bedwars.Handler:Get('HannahPromptTrigger'):Fire('CallServer', {
+                                    user = lplr,
+                                    victimEntity = v.Character
+                                }) then
+                                    local billboard = v.Character:FindFirstChild('Hannah Execution Icon')
+                                    if billboard then
+                                        billboard:Destroy()
+                                    end
+                                end
+    
+                                break
+                            end
+                        end
+                    end
+                    task.wait(0.1)
+                until not AutoHannah.Enabled
+                table.clear(attempted)
+            end
+        end,
+        Tooltip = 'Auto executes players when their health is low enough'
+    })
+    
+    Targets = AutoHannah:CreateTargets({Players = true})
+    local methods = {'Health', 'Distance'}
+    for _, v in sortlist do
+        if not table.find(methods, v) then
+            table.insert(methods, v)
+        end
+    end
+    Sort = AutoHannah:CreateDropdown({
+        Name = 'Target mode',
+        List = methods,
+        Default = 'Health',
+        Tooltip = 'How it sorts targets for execution'
+    })
+    Range = AutoHannah:CreateSlider({
+        Name = 'Range',
+        Min = 1,
+        Max = 30,
+        Default = 30,
+        Suffix = function(val)
+            return val <= 1 and 'stud' or 'studs'
+        end,
+        Tooltip = 'How far it reaches to find targets'
+    })
+    AuraTarget = AutoHannah:CreateToggle({
+        Name = 'Only killaura target',
+        Tooltip = 'Only executes players your killaura is hitting'
+    })
+end)
+
+run(function()
+    local AutoHephaestus
+    local Summon
+    local lastRepair, lastSummon = 0, 0
+    
+    AutoHephaestus = vape.Categories.Kits:CreateModule({
+        Name = 'AutoHephaestus',
+        Function = function(callback)
+            if callback then
+                AutoHephaestus:Clean(runService.Heartbeat:Connect(function()
+                    if store.equippedKit ~= 'tinker' then return end
+    
+                    if bedwars.TinkerKitController.mounted then
+                        if tick() >= lastRepair and bedwars.AbilityController:canUseAbility('tinker_self_repair', {disableBlockedAbilityAlert = true}) and (workspace:GetServerTimeNow() - bedwars.SwordController.lastAttack) > 1 then
+                            lastRepair = tick() + 0.5
+                            bedwars.AbilityController:useAbility('tinker_self_repair')
+                        end
+                    elseif Summon.Enabled and tick() >= lastSummon and bedwars.AbilityController:canUseAbility('tinker_summon', {disableBlockedAbilityAlert = true}) then
+                        lastSummon = tick() + 1
+                        bedwars.AbilityController:useAbility('tinker_summon')
+                    end
+                end))
+            end
+        end,
+        Tooltip = 'Auto repairs the Tinker mount and resummons it'
+    })
+    
+    Summon = AutoHephaestus:CreateToggle({
+        Name = 'Summon tinker',
+        Tooltip = 'Auto calls your Tinker mount if it isnt out'
+    })
+end)
+
+run(function()
+    local AutoKaida
+    local Targets
+    local Sort
+    local SwingRange
+    local AttackRange
+    local Spell
+    local SpellMode
+    local SpellCharge
+    local SpellRange
+    local Swing
+    local Limit
+    local Mouse
+    local GUI
+    
+    local casting = 0
+    
+    local function getClaw()
+        if Limit.Enabled then
+            return store.hand.tool and bedwars.IsItemClaw(store.hand.tool.Name) and store.hand or nil
+        end
+    
+        for _, v in store.inventory.inventory.items do
+            if bedwars.IsItemClaw(v.itemType) then
+                return v
+            end
+        end
+        return nil
+    end
+    
+    local function castSpell()
+        local localPosition = entitylib.character.RootPart.Position
+        local target
+        if SpellMode.Value == 'Camera' then
+            local point = bedwars.AbilityIndicatorUtil:calculateBlockTargetPoint(gameCamera.CFrame.Position, gameCamera.CFrame.LookVector, 300, nil, {allowArenaBarrierTarget = false})
+            target = point and (point - localPosition).Magnitude <= SpellRange.Value and point or nil
+        else
+            local ent = entitylib.EntityPosition({
+                Range = SpellRange.Value,
+                Part = 'RootPart',
+                Players = Targets.Players.Enabled,
+                NPCs = Targets.NPCs.Enabled,
+                Priority = Targets.Priority.Value,
+                Sort = sortmethods[Sort.Value]
+            })
+            if ent then
+                local point = bedwars.AbilityIndicatorUtil:calculateBlockTargetPoint(ent.RootPart.Position + Vector3.new(0, 3, 0), Vector3.new(0, -1, 0), 30, nil, {allowArenaBarrierTarget = false})
+                target = point and (point - localPosition).Magnitude <= SpellRange.Value and point or ent.RootPart.Position
+            end
+        end
+        if not target or not bedwars.AbilityController:canUseAbility('summoner_start_charging', {disableBlockedAbilityAlert = true}) then return end
+    
+        casting = tick() + 6
+        bedwars.AbilityController:useAbility('summoner_start_charging', nil, {targetPosition = target})
+    
+        local level = bedwars.SummonerUtil.summoner_getPlayerSpellLevel(lplr) or 1
+        local charge = math.max(bedwars.SummonerUtil.summoner_getTotalCastTimeRequired(level) * (SpellCharge.Value / 100), bedwars.SummonerKitBalance.SPELL_MINIMUM_CAST_TIME)
+        local deadline = tick() + charge
+        repeat task.wait() until tick() >= deadline or not AutoKaida.Enabled or not entitylib.isAlive or not bedwars.SummonerKitController:isPlayerCastingSpell(lplr)
+    
+        if AutoKaida.Enabled and entitylib.isAlive and bedwars.SummonerKitController:isPlayerCastingSpell(lplr) then
+            bedwars.AbilityController:useAbility('summoner_finish_charging')
+        end
+        casting = 0
+    end
+    
+    AutoKaida = vape.Categories.Kits:CreateModule({
+        Name = 'AutoKaida',
+        Function = function(callback)
+            if callback then
+                repeat
+                    if entitylib.isAlive and store.equippedKit == 'summoner' then
+                        if Spell.Enabled and tick() > casting and not bedwars.SummonerKitController:isPlayerCastingSpell(lplr) then
+                            task.spawn(castSpell)
+                        end
+    
+                        local claw = (not Mouse.Enabled or inputService:IsMouseButtonPressed(0)) and (not GUI.Enabled or not bedwars.AppController:isLayerOpen(bedwars.UILayers.MAIN)) and getClaw()
+                        local ent = claw and (workspace:GetServerTimeNow() - bedwars.SummonerClawHandController.lastAttackTime) > bedwars.SummonerKitBalance.CLAW_COOLDOWN and (Swing.Enabled or not bedwars.SummonerKitController:isPlayerCastingSpell(lplr)) and entitylib.EntityPosition({
+                            Range = SwingRange.Value,
+                            Wallcheck = Targets.Walls.Enabled or nil,
+                            Part = 'RootPart',
+                            Players = Targets.Players.Enabled,
+                            NPCs = Targets.NPCs.Enabled,
+                            Priority = Targets.Priority.Value,
+                            Sort = sortmethods[Sort.Value]
+                        })
+    
+                        if ent then
+                            local selfpos = entitylib.character.RootPart.Position
+                            local delta = ent.RootPart.Position - selfpos
+                            local dir = CFrame.lookAt(selfpos, ent.RootPart.Position).LookVector
+                            targetinfo.Targets[ent] = tick() + 1
+                            switchItem(claw.tool, 0)
+                            if delta.Magnitude <= AttackRange.Value then
+                                bedwars.Handler:Get('SummonerClawAttackRequest'):Fire(nil, {
+                                    position = selfpos + dir * math.max(delta.Magnitude - 16.399, 0),
+                                    direction = dir,
+                                    clientTime = workspace:GetServerTimeNow()
+                                })
+                            end
+                            bedwars.SummonerClawHandController.lastAttackTime = workspace:GetServerTimeNow()
+                            bedwars.SummonerClawController:clawAttack(lplr, selfpos, dir, claw.tool.Name)
+                        end
+                    end
+    
+                    task.wait(0.1)
+                until not AutoKaida.Enabled
+            else
+                casting = 0
+            end
+        end,
+        Tooltip = 'Auto swings the Kaida claw and casts the summon circle'
+    })
+    
+    Targets = AutoKaida:CreateTargets({Players = true})
+    local methods = {'Distance', 'Damage'}
+    for _, v in sortlist do
+        if not table.find(methods, v) then
+            table.insert(methods, v)
+        end
+    end
+    Sort = AutoKaida:CreateDropdown({
+        Name = 'Target mode',
+        List = methods,
+        Tooltip = 'How it sorts targets for the claw attack'
+    })
+    SwingRange = AutoKaida:CreateSlider({
+        Name = 'Swing Range',
+        Min = 1,
+        Max = 32,
+        Default = 32,
+        Suffix = function(val)
+            return val <= 1 and 'stud' or 'studs'
+        end,
+        Tooltip = 'How far it reaches to find targets to swing at'
+    })
+    AttackRange = AutoKaida:CreateSlider({
+        Name = 'Attack Range',
+        Min = 1,
+        Max = 32,
+        Default = 32,
+        Suffix = function(val)
+            return val <= 1 and 'stud' or 'studs'
+        end,
+        Tooltip = 'How close you need to be to actually hit them'
+    })
+    Spell = AutoKaida:CreateToggle({
+        Name = 'Auto summon',
+        Function = function(callback)
+            if SpellMode then
+                SpellMode.Object.Visible = callback
+                SpellCharge.Object.Visible = callback
+                SpellRange.Object.Visible = callback
+            end
+        end,
+        Tooltip = 'Auto charges and drops the summon circle'
+    })
+    SpellMode = AutoKaida:CreateDropdown({
+        Name = 'Summon at',
+        List = {'Target', 'Camera'},
+        Darker = true,
+        Visible = false,
+        Tooltip = 'Target drops it on the nearest player, Camera drops it where you look'
+    })
+    SpellCharge = AutoKaida:CreateSlider({
+        Name = 'Charge',
+        Min = 1,
+        Max = 100,
+        Default = 100,
+        Darker = true,
+        Visible = false,
+        Suffix = '%',
+        Tooltip = 'How long to charge the spell before releasing'
+    })
+    SpellRange = AutoKaida:CreateSlider({
+        Name = 'Summon Range',
+        Min = 1,
+        Max = 39,
+        Default = 39,
+        Darker = true,
+        Visible = false,
+        Suffix = function(val)
+            return val <= 1 and 'stud' or 'studs'
+        end,
+        Tooltip = 'Max distance for placing the summon circle'
+    })
+    Swing = AutoKaida:CreateToggle({
+        Name = 'Swing during ability',
+        Default = true,
+        Tooltip = 'Lets you swing the claw while the spell is charging'
+    })
+    Limit = AutoKaida:CreateToggle({
+        Name = 'Limit to items',
+        Tooltip = 'Only attacks if you are holding the claw'
+    })
+    Mouse = AutoKaida:CreateToggle({
+        Name = 'Require mouse down',
+        Tooltip = 'Only attacks if your mouse button is held down'
+    })
+    GUI = AutoKaida:CreateToggle({
+        Name = 'GUI check',
+        Tooltip = 'Stops attacking if you have a game UI open'
+    })
+end)
+
+run(function()
+    local AutoKaliyah
+    local Range
+    local Stacks
+    local Delay
+    local NoSlow
+    
+    local Legit = getFunctionRange(bedwars.DragonSlayerController.hasEligiblePunchTarget) or 14.4
+    local modifier, old
+    local noSlowUntil = 0
+    
+    local function punch()
+        if NoSlow.Enabled then
+            if not old then
+                modifier = bedwars.SprintController:getMovementStatusModifier()
+                old = modifier.addModifier
+                modifier.addModifier = function(self, tab)
+                    if NoSlow.Enabled and tick() < noSlowUntil and tab and tab.moveSpeedMultiplier == 0 then
+                        tab.moveSpeedMultiplier = 1
+                    end
+                    return old(self, tab)
+                end
+    
+                AutoKaliyah:Clean(function()
+                    modifier.addModifier = old
+                    modifier, old = nil, nil
+                    noSlowUntil = 0
+                end)
+            end
+            noSlowUntil = math.max(noSlowUntil, tick() + Delay.Value + 0.1)
+        end
+    
+        task.wait(Delay.Value)
+        bedwars.AbilityController:useAbility('dragon_slayer_punch')
+    end
+    
+    AutoKaliyah = vape.Categories.Kits:CreateModule({
+        Name = 'AutoKaliyah',
+        Function = function(call)
+            if call then
+                repeat
+                    if entitylib.isAlive and store.equippedKit == 'dragon_slayer' and bedwars.AbilityController:canUseAbility('dragon_slayer_punch', {disableBlockedAbilityAlert = true}) then
+                        local localPosition = entitylib.character.RootPart.Position
+                        for i2, v2 in bedwars.DragonSlayerController.dragonEmblems do
+                            if v2.stackCount >= Stacks.Value and i2.PrimaryPart and (i2.PrimaryPart.Position - localPosition).Magnitude <= Range.Value then
+                                punch()
+                                break
+                            end
+                        end
+                    end
+                    task.wait(0.1)
+                until not AutoKaliyah.Enabled
+            end
+        end,
+        Tooltip = 'Auto uses the Dragon Slayer punch when emblems are ready'
+    })
+    
+    NoSlow = AutoKaliyah:CreateToggle({
+        Name = 'No Slow',
+        Default = true,
+        Tooltip = 'Cancels out the slow effect after punching'
+    })
+    Range = AutoKaliyah:CreateSlider({
+        Name = 'Range',
+        Min = 1,
+        Max = 20,
+        Default = 18,
+        Suffix = function(val)
+            return val <= 1 and 'stud' or 'studs'
+        end,
+        Tooltip = 'How far it reaches to find emblems'
+    })
+    AutoKaliyah:CreateButton({
+        Name = 'Sync to legit range',
+        Function = function()
+            Range:SetValue(Legit)
+        end,
+        Tooltip = 'Sets range to the default legit reach'
+    })
+    Stacks = AutoKaliyah:CreateSlider({
+        Name = 'Stacks',
+        Min = 1,
+        Max = 3,
+        Default = 1,
+        Suffix = function(val)
+            return val <= 1 and 'stack' or 'stacks'
+        end,
+        Tooltip = 'How many emblems a target needs before it punches'
+    })
+    Delay = AutoKaliyah:CreateSlider({
+        Name = 'Delay',
+        Min = 0,
+        Max = 1,
+        Default = 0.1,
+        Decimal = 100,
+        Tooltip = 'Wait time before actually punching after finding a target'
+    })
+end)
+
+run(function()
+    local JadeInstaKill
+    local Height
+
+    JadeInstaKill = vape.Categories.Blatant:CreateModule({
+        Name = 'JadeInstaKill',
+
+        Function = function(callback)
+            if callback then
+                local character = lplr.Character
+                local root = character and character:FindFirstChild('HumanoidRootPart')
+
+                if root then
+                    root.CFrame = root.CFrame + Vector3.new(0, Height.Value, 0)
+
+                    task.wait(0.25)
+
+                    if JadeInstaKill.Enabled then
+                        bedwars.AbilityController:useAbility('jade_hammer_jump')
+                        JadeInstaKill:Toggle()
+                    end
+                end
+            end
+        end,
+
+        Tooltip = 'jade hammer op bhaiii'
+    })
+
+    Height = JadeInstaKill:CreateSlider({
+        Name = 'Height',
+        Min = 10,
+        Max = 150,
+        Default = 50,
+        Round = 1
+    })
+end)
