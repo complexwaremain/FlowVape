@@ -11213,88 +11213,102 @@ run(function()
 	})
 end)
 
-
 run(function()
-	local Speed
-	local Value
-	local WallCheck
-	local AutoJump
-	local AlwaysJump
-	local rayCheck = RaycastParams.new()
-	rayCheck.RespectCanCollide = true
-	
-	Speed = vape.Categories.Blatant:CreateModule({
-		Name = 'ZephyrDisabler',
-		Function = function(callback)
-			frictionTable.Speed = callback or nil
-			updateVelocity()
-			pcall(function()
-				debug.setconstant(bedwars.WindWalkerController.updateSpeed, 7, callback and 'constantSpeedMultiplier' or 'moveSpeedMultiplier')
-			end)
-	
-			if callback then
-				Speed:Clean(runService.PreSimulation:Connect(function(dt)
-					bedwars.StatefulEntityKnockbackController.lastImpulseTime = callback and math.huge or time()
-						if entitylib.isAlive and not Fly.Enabled and not vape.Modules.LongJump.Enabled and isnetworkowner(entitylib.character.RootPart) then
-						local char = entitylib.character
-						local hum = char.Humanoid
-						local state = hum:GetState()
-						if state == Enum.HumanoidStateType.Climbing then return end
-
-						local root, velo = char.RootPart, getSpeed()
-						local moveDirection = AntiFallDirection or hum.MoveDirection
-						local destination = (moveDirection * math.max(Value.Value - velo, 0) * dt)
-	
-						if WallCheck.Enabled then
-							rayCheck.FilterDescendantsInstances = {lplr.Character, gameCamera}
-							rayCheck.CollisionGroup = root.CollisionGroup
-							local ray = workspace:Raycast(root.Position, destination, rayCheck)
-							if ray then
-								destination = ((ray.Position + ray.Normal) - root.Position)
-							end
-						end
-	
-						root.CFrame += destination
-						root.AssemblyLinearVelocity = (moveDirection * velo) + Vector3.new(0, root.AssemblyLinearVelocity.Y, 0)
-						-- `Attacking` is a bare global on purpose: bedwars.lua's Killaura sets it
-						-- every Heartbeat and the two chunks share one environment. Do not turn it
-						-- into a local here or in bedwars.lua without moving it onto genv first --
-						-- this is the only thing that tells AutoJump a swing is in progress.
-						if AutoJump.Enabled and (state == Enum.HumanoidStateType.Running or state == Enum.HumanoidStateType.Landed) and moveDirection ~= Vector3.zero and (Attacking or AlwaysJump.Enabled) then
-							hum:ChangeState(Enum.HumanoidStateType.Jumping)
-						end
-					end
-				end))
-			end
-		end,
-		ExtraText = function()
-			return 'bedwars developers'
-		end,
-		Tooltip = 'Speeds you up. Pick whichever method works best for you.'
-	})
-	Value = Speed:CreateSlider({
-		Name = 'Speed',
-		Min = 1,
-		Max = 50,
-		Default = 22,
-		Suffix = function(val)
-			return val == 1 and 'stud' or 'studs'
-		end
-	})
-	WallCheck = Speed:CreateToggle({
-		Name = 'Wall Check',
-		Default = true
-	})
-	AutoJump = Speed:CreateToggle({
-		Name = 'AutoJump',
-		Function = function(callback)
-			AlwaysJump.Object.Visible = callback
-		end
-	})
-	AlwaysJump = Speed:CreateToggle({
-		Name = 'Always Jump',
-		Visible = false,
-		Darker = true
-	})
+    local Speed
+    local Value
+    local WallCheck
+    local AutoJump
+    local AlwaysJump
+    local ray_check = RaycastParams.new()
+    ray_check.RespectCanCollide = true
+    
+    -- Safe fallback for isnetworkowner just in case it isn't defined globally
+    local isnetworkowner = isnetworkowner or function(part)
+        return part and part:IsA('BasePart') and part:GetNetworkOwner() == lplr
+    end
+    
+    Speed = vape.Categories.Blatant:CreateModule({
+        Name = 'ZephyrDisabler',
+        Function = function(callback)
+            pcall(function()
+                debug.setconstant(bedwars.WindWalkerController.updateSpeed, 7, callback and 'constantSpeedMultiplier' or 'moveSpeedMultiplier')
+            end)
+    
+            if callback then
+                Speed:Clean(runService.PreSimulation:Connect(function(dt)
+                    -- Safely check if Fly or LongJump are enabled without breaking the script
+                    local flyEnabled = vape.Modules.Fly and vape.Modules.Fly.Enabled
+                    local longJumpEnabled = vape.Modules.LongJump and vape.Modules.LongJump.Enabled
+                    
+                    if entitylib.isAlive and not flyEnabled and not longJumpEnabled and isnetworkowner(entitylib.character.RootPart) then
+                        local char = entitylib.character
+                        local hum = char.Humanoid
+                        local state = hum:GetState()
+                        if state == Enum.HumanoidStateType.Climbing then return end
+    
+                        local root = char.RootPart
+                        local moveDirection = hum.MoveDirection
+                        if moveDirection == Vector3.zero then return end
+    
+                        -- Calculate current horizontal speed and apply delta
+                        local currentVelo = Vector3.new(root.AssemblyLinearVelocity.X, 0, root.AssemblyLinearVelocity.Z).Magnitude
+                        local delta = math.max(Value.Value - currentVelo, 0)
+                        local destination = moveDirection * delta * dt
+    
+                        if WallCheck.Enabled then
+                            ray_check.FilterDescendantsInstances = {lplr.Character, gameCamera}
+                            ray_check.CollisionGroup = root.CollisionGroup
+                            local ray = workspace:Raycast(root.Position, destination, ray_check)
+                            if ray then
+                                destination = ((ray.Position + ray.Normal) - root.Position)
+                            end
+                        end
+    
+                        root.CFrame += destination
+                        root.AssemblyLinearVelocity = (moveDirection * Value.Value) + Vector3.new(0, root.AssemblyLinearVelocity.Y, 0)
+                        
+                        -- `Attacking` is a bare global on purpose: bedwars.lua's Killaura sets it
+                        -- every Heartbeat and the two chunks share one environment. Do not turn it
+                        -- into a local here or in bedwars.lua without moving it onto genv first --
+                        -- this is the only thing that tells AutoJump a swing is in progress.
+                        local isAttacking = Attacking
+                        if AutoJump.Enabled and (state == Enum.HumanoidStateType.Running or state == Enum.HumanoidStateType.Landed) and (isAttacking or AlwaysJump.Enabled) then
+                            hum:ChangeState(Enum.HumanoidStateType.Jumping)
+                        end
+                    end
+                end))
+            end
+        end,
+        ExtraText = function()
+            return 'bedwars developers'
+        end,
+        Tooltip = 'Speeds you up. Pick whichever method works best for you.'
+    })
+    
+    Value = Speed:CreateSlider({
+        Name = 'Speed',
+        Min = 1,
+        Max = 50,
+        Default = 22,
+        Suffix = function(val)
+            return val == 1 and 'stud' or 'studs'
+        end
+    })
+    WallCheck = Speed:CreateToggle({
+        Name = 'Wall Check',
+        Default = true
+    })
+    AutoJump = Speed:CreateToggle({
+        Name = 'AutoJump',
+        Function = function(callback)
+            if AlwaysJump then
+                AlwaysJump.Object.Visible = callback
+            end
+        end
+    })
+    AlwaysJump = Speed:CreateToggle({
+        Name = 'Always Jump',
+        Visible = false,
+        Darker = true
+    })
 end)
-
