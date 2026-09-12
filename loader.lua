@@ -1,40 +1,43 @@
-local isfile = isfile or function(file)
-    local suc, res = pcall(function()
-        return readfile(file)
-    end)
-    return suc and res ~= nil and res ~= ''
-end
-local delfile = delfile or function(file)
-    pcall(writefile, file, '')
+local isfile = isfile or function(path)
+    local s, res = pcall(readfile, path)
+    return s and res ~= nil and res ~= ''
 end
 
-local function wipeFolder(path)
-    if not isfolder(path) then return end
-    for _, file in listfiles(path) do
-        if file:find('loader') then continue end
-        if isfile(file) and select(1, readfile(file):find('--This watermark is used to delete the file if its cached, remove it to make the file persist after vape updates.')) == 1 then
-            delfile(file)
+local delfile = delfile or function(path)
+    pcall(writefile, path, '')
+end
+
+local repo = 'https://raw.githubusercontent.com/complexwaremain/FlowVape/main/'
+
+local function wipeFolder(dir)
+    if not isfolder(dir) then return end
+    for _, v in pairs(listfiles(dir)) do
+        if not v:find('loader') and isfile(v) then
+            local content = readfile(v)
+            if content and content:find('^--This watermark is used to delete the file if its cached, remove it to make the file persist after vape updates.') then
+                delfile(v)
+            end
         end
     end
 end
 
-    for _, folder in {'FlowVape', 'FlowVape/games', 'FlowVape/profiles', 'FlowVape/assets', 'FlowVape/libraries', 'FlowVape/profilesmobile', 'FlowVape/guis'} do
-    if not isfolder(folder) then
-        pcall(makefolder, folder)
+local folders = {'FlowVape', 'FlowVape/games', 'FlowVape/profiles', 'FlowVape/assets', 'FlowVape/libraries', 'FlowVape/profilesmobile', 'FlowVape/guis'}
+for i = 1, #folders do
+    if not isfolder(folders[i]) then
+        pcall(makefolder, folders[i])
     end
 end
 
 task.wait(0.1)
 
 if not shared.VapeDeveloper then
-    local _, subbed = pcall(function() 
+    local s, raw = pcall(function() 
         return game:HttpGet('https://github.com/complexwaremain/FlowVape') 
     end)
-    local commit = subbed and subbed:find('currentOid') or nil
-    commit = commit and subbed:sub(commit + 13, commit + 52) or nil
-    commit = commit and #commit == 40 and commit or 'main'
+    local commit = raw and raw:match('currentOid.-(%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x)') or 'main'
+    local cur = isfile('FlowVape/profiles/commit.txt') and readfile('FlowVape/profiles/commit.txt') or ''
     
-    if commit == 'main' or (isfile('FlowVape/profiles/commit.txt') and readfile('FlowVape/profiles/commit.txt') or '') ~= commit then
+    if commit == 'main' or cur ~= commit then
         wipeFolder('FlowVape')
         wipeFolder('FlowVape/games')
         wipeFolder('FlowVape/guis')
@@ -45,16 +48,14 @@ end
 
 local function downloadFile(path, func)
     if not isfile(path) then
-        local commitFile = 'FlowVape/profiles/commit.txt'
-        local commit = isfile(commitFile) and readfile(commitFile) or 'main'
-        local suc, res = pcall(function()
-            return game:HttpGet('https://raw.githubusercontent.com/complexwaremain/FlowVape/main/'..select(1, path:gsub('FlowVape/', '')), true)
+        local s, res = pcall(function()
+            return game:HttpGet(repo .. (path:gsub('FlowVape/', '')), true)
         end)
-        if not suc or res == '404: Not Found' then
+        if not s or res == '404: Not Found' then
             error(res)
         end
-        if path:find('.lua') then
-            res = '--This watermark is used to delete the file if its cached, remove it to make the file persist after vape updates.\n'..res
+        if path:find('%.lua') then
+            res = '--This watermark is used to delete the file if its cached, remove it to make the file persist after vape updates.\n' .. res
         end
         pcall(writefile, path, res)
         if func then return func(path) end
@@ -65,37 +66,35 @@ end
 
 -- Fixed Profile Downloading with Correct Capitalisation
 local function forceDownloadProfile(urlPath, localPath)
-    local suc, res = pcall(function()
-        return game:HttpGet('https://raw.githubusercontent.com/complexwaremain/FlowVape/main/'..urlPath, true)
+    local s, res = pcall(function()
+        return game:HttpGet(repo .. urlPath, true)
     end)
-    if suc and res ~= '404: Not Found' then
-        pcall(writefile, 'FlowVape/'..localPath, res)
+    if s and res ~= '404: Not Found' then
+        pcall(writefile, 'FlowVape/' .. localPath, res)
     end
 end
 
 local isMobile = shared.FlowVapeIsMobile == true
 
 if isMobile then
-    -- GitHub casing: legitMob... Saved locally as Legit...
-    local mobProfiles = {
+    local mobile = {
         {remote = 'profilesmobile/legitMob6872274481.txt', saveAs = 'profiles/Legit6872274481.txt'},
         {remote = 'profilesmobile/blatantMob6872274481.txt', saveAs = 'profiles/Blatant6872274481.txt'},
         {remote = 'profilesmobile/legitMob6872265039.txt', saveAs = 'profiles/Legit6872265039.txt'},
         {remote = 'profilesmobile/blatantMob6872265039.txt', saveAs = 'profiles/Blatant6872265039.txt'}
     }
-    for i = 1, #mobProfiles do
-        forceDownloadProfile(mobProfiles[i].remote, mobProfiles[i].saveAs)
+    for i = 1, #mobile do
+        forceDownloadProfile(mobile[i].remote, mobile[i].saveAs)
     end
 else
-    -- GitHub casing: Legit... Saved locally as Legit...
-    local pcProfiles = {
+    local pc = {
         {remote = 'profiles/Legit6872274481.txt', saveAs = 'profiles/Legit6872274481.txt'},
         {remote = 'profiles/Blatant6872274481.txt', saveAs = 'profiles/Blatant6872274481.txt'},
         {remote = 'profiles/Legit6872265039.txt', saveAs = 'profiles/Legit6872265039.txt'},
         {remote = 'profiles/Blatant6872265039.txt', saveAs = 'profiles/Blatant6872265039.txt'}
     }
-    for i = 1, #pcProfiles do
-        forceDownloadProfile(pcProfiles[i].remote, pcProfiles[i].saveAs)
+    for i = 1, #pc do
+        forceDownloadProfile(pc[i].remote, pc[i].saveAs)
     end
 end
 
