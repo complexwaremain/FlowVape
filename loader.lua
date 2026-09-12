@@ -75,18 +75,6 @@ end
 
 local isMobile = shared.FlowVapeIsMobile == true
 
-local SHARED_FILES = {
-    'profiles/gui.txt',
-    'profiles/commit.txt',
-    'profiles/2619619496.gui.txt',
-    'profiles/default6872274481.txt',
-    'profiles/default6872265039.txt',
-}
-
-for i = 1, #SHARED_FILES do
-    forceDownloadProfile(SHARED_FILES[i], SHARED_FILES[i])
-end
-
 if isMobile then
     -- GitHub casing: legitMob... Saved locally as Legit...
     local mobProfiles = {
