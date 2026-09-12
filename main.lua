@@ -11,13 +11,14 @@ if identifyexecutor then
 end
 
 local vape
+local rawLoadstring = loadstring
 
 local loadstring = function(...)
-    local res, err = loadstring(...)
+    local res, err = rawLoadstring(...)
     if err and vape then
-        vape:CreateNotification('Vape', 'Failed to load : '..err, 30, 'alert')
+        vape:CreateNotification('Vape', 'Failed to load : '..tostring(err), 30, 'alert')
     end
-    return res
+    return res, err
 end
 
 local queue_on_teleport = queue_on_teleport or function() end
@@ -29,20 +30,21 @@ end
 
 local cloneref = cloneref or function(obj) return obj end
 local playersService = cloneref(game:GetService('Players'))
+local httpService = game:GetService('HttpService')
 local isMobile = shared.FlowVapeIsMobile == true
 
 local ALL_PROFILES = {
     ['6872274481'] = {
         {Name = 'Legit', File = 'Legit6872274481'},
         {Name = 'Blatant', File = 'Blatant6872274481'},
-        {Name = 'LegitMob', File = 'LegitMob6872274481'},
-        {Name = 'BlatantMob', File = 'BlatantMob6872274481'},
+        {Name = 'LegitMob', File = 'legitMob6872274481'},
+        {Name = 'BlatantMob', File = 'blatantMob6872274481'},
     },
     ['6872265039'] = {
         {Name = 'Legit', File = 'Legit6872265039'},
         {Name = 'Blatant', File = 'Blatant6872265039'},
-        {Name = 'LegitMob', File = 'LegitMob6872265039'},
-        {Name = 'BlatantMob', File = 'BlatantMob6872265039'},
+        {Name = 'LegitMob', File = 'legitMob6872265039'},
+        {Name = 'BlatantMob', File = 'blatantMob6872265039'},
     },
 }
 
@@ -138,10 +140,10 @@ local function finishLoading()
                 local matchFile = 'FlowVape/profiles/'..lastProfile..'6872265039.txt'
                 if isfile(lobbyFile) and isfile(matchFile) then
                     local okL, lobbyData = pcall(function()
-                        return game:GetService('HttpService'):JSONDecode(readfile(lobbyFile))
+                        return httpService:JSONDecode(readfile(lobbyFile))
                     end)
                     local okM, matchData = pcall(function()
-                        return game:GetService('HttpService'):JSONDecode(readfile(matchFile))
+                        return httpService:JSONDecode(readfile(matchFile))
                     end)
                     if okL and okM and type(lobbyData) == 'table' and type(matchData) == 'table' then
                         for moduleName, settings in pairs(lobbyData) do
@@ -149,7 +151,7 @@ local function finishLoading()
                                 matchData[moduleName] = settings
                             end
                         end
-                        pcall(writefile, matchFile, game:GetService('HttpService'):JSONEncode(matchData))
+                        pcall(writefile, matchFile, httpService:JSONEncode(matchData))
                     end
                 end
             end)
@@ -215,10 +217,13 @@ do
         gui = data
     end
 end
-if not gui then
+if not gui or gui == '' then
     gui = 'new'
     pcall(writefile, 'FlowVape/profiles/gui.txt', 'new')
 end
+
+gui = gui:gsub('%s+$', ''):gsub('^%s+', '')
+if gui == '' then gui = 'new' end
 
 if not isfolder('FlowVape/assets/'..gui) then
     makefolder('FlowVape/assets/'..gui)
@@ -233,17 +238,22 @@ end
 
 local guiload, guierr = loadstring(guicontent, 'gui')
 if not guiload then
+    warn('[FlowVape] GUI fetch URL: guis/'..gui..'.lua')
+    warn('[FlowVape] GUI content length: '..tostring(#guicontent))
+    warn('[FlowVape] GUI content preview:', guicontent:sub(1, 500))
+    warn('[FlowVape] GUI load error:', tostring(guierr))
     error('GUI syntax error: '..tostring(guierr))
 end
 
 local ok, result = pcall(guiload)
 if not ok then
+    warn('[FlowVape] GUI runtime error:', tostring(result))
     error('GUI runtime error: '..tostring(result))
 end
 
 vape = result
 if not vape then
-    error('GUI returned nil — expected a vape object')
+    error('GUI returned nil - expected a vape object')
 end
 shared.vape = vape
 
@@ -257,6 +267,7 @@ if not shared.VapeIndependent then
 
     local uniFunc, uniErr = loadstring(universalcontent, 'universal')
     if not uniFunc then
+        warn('[FlowVape] universal.lua load error:', tostring(uniErr))
         error('universal.lua syntax error: '..tostring(uniErr))
     end
     uniFunc()
