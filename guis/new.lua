@@ -156,20 +156,8 @@ end
 
 local function addCorner(parent, radius)
 	local corner = Instance.new('UICorner')
-	corner.CornerRadius = radius or UDim.new(0, 10)
+	corner.CornerRadius = radius or UDim.new(0, 5)
 	corner.Parent = parent
-	local gradient = Instance.new('UIGradient')
-	gradient.Rotation = 90
-	gradient.Color = ColorSequence.new({
-		ColorSequenceKeypoint.new(0, Color3.fromRGB(18, 18, 24)),
-		ColorSequenceKeypoint.new(1, Color3.fromRGB(12, 12, 16))
-	})
-	gradient.Transparency = NumberSequence.new({
-		NumberSequenceKeypoint.new(0, 0),
-		NumberSequenceKeypoint.new(1, 0.3)
-	})
-	gradient.Parent = parent
-
 	return corner
 end
 
@@ -1413,8 +1401,14 @@ components = {
 		window.Text = ''
 		window.Parent = clickgui
 		optionapi.Window = window
+		window.BackgroundTransparency = 0.1
 		addBlur(window)
 		addCorner(window)
+		local stroke = Instance.new('UIStroke')
+        stroke.Color = Color3.fromRGB(0, 240, 255)
+        stroke.Thickness = 1
+        stroke.Transparency = 0.5
+        stroke.Parent = window
 		local icon = Instance.new('ImageLabel')
 		icon.Name = 'Icon'
 		icon.Size = UDim2.fromOffset(18, 12)
@@ -2580,6 +2574,11 @@ function mainapi:CreateGUI()
 	settingsversion.FontFace = uipallet.Font
 	settingsversion.Parent = settingspane
 	addCorner(settingspane)
+	local stroke = Instance.new('UIStroke')
+    stroke.Color = Color3.fromRGB(0, 240, 255)
+    stroke.Thickness = 1
+    stroke.Transparency = 0.5
+    stroke.Parent = settingspane
 	local settingschildren = Instance.new('Frame')
 	settingschildren.Name = 'Children'
 	settingschildren.Size = UDim2.new(1, 0, 1, -57)
