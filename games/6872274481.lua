@@ -11315,6 +11315,806 @@ run(function()
     })
 end)
 
+run(function()
+    local CustomSky
+    local SkyMode
+    local rainConnection
+    local rainSound
+    local savedSky
+    local savedLighting
+
+    local Lighting = cloneref(game:GetService('Lighting'))
+    local Workspace = cloneref(game:GetService('Workspace'))
+    local RunService = cloneref(game:GetService('RunService'))
+
+    local Skyboxes = {
+        Minecraft = {
+            SkyboxBk = 'rbxassetid://1876545003',
+            SkyboxDn = 'rbxassetid://1876544331',
+            SkyboxFt = 'rbxassetid://1876542941',
+            SkyboxLf = 'rbxassetid://1876543392',
+            SkyboxRt = 'rbxassetid://1876543764',
+            SkyboxUp = 'rbxassetid://1876544642'
+        },
+        PurpleDay = {
+            SkyboxBk = 'rbxassetid://296908715',
+            SkyboxDn = 'rbxassetid://296908724',
+            SkyboxFt = 'rbxassetid://296908740',
+            SkyboxLf = 'rbxassetid://296908755',
+            SkyboxRt = 'rbxassetid://296908764',
+            SkyboxUp = 'rbxassetid://296908769'
+        },
+        RedNight = {
+            SkyboxBk = 'rbxassetid://401664839',
+            SkyboxDn = 'rbxassetid://401664862',
+            SkyboxFt = 'rbxassetid://401664960',
+            SkyboxLf = 'rbxassetid://401664881',
+            SkyboxRt = 'rbxassetid://401664901',
+            SkyboxUp = 'rbxassetid://401664936'
+        },
+        Trollge = {
+            SkyboxBk = 'rbxassetid://6155393905',
+            SkyboxDn = 'rbxassetid://6155393905',
+            SkyboxFt = 'rbxassetid://6155393905',
+            SkyboxLf = 'rbxassetid://6155393905',
+            SkyboxRt = 'rbxassetid://6155393905',
+            SkyboxUp = 'rbxassetid://6155393905'
+        },
+        Night = {
+            SkyboxBk = 'rbxassetid://48020371',
+            SkyboxDn = 'rbxassetid://48020144',
+            SkyboxFt = 'rbxassetid://48020234',
+            SkyboxLf = 'rbxassetid://48020211',
+            SkyboxRt = 'rbxassetid://48020254',
+            SkyboxUp = 'rbxassetid://48020383'
+        },
+        Space = {
+            SkyboxBk = 'rbxassetid://149397692',
+            SkyboxDn = 'rbxassetid://149397686',
+            SkyboxFt = 'rbxassetid://149397697',
+            SkyboxLf = 'rbxassetid://149397684',
+            SkyboxRt = 'rbxassetid://149397688',
+            SkyboxUp = 'rbxassetid://149397702'
+        },
+        Default = {
+            SkyboxBk = 'rbxassetid://6444884337',
+            SkyboxDn = 'rbxassetid://6444884785',
+            SkyboxFt = 'rbxassetid://6444884337',
+            SkyboxLf = 'rbxassetid://6444884337',
+            SkyboxRt = 'rbxassetid://6444884337',
+            SkyboxUp = 'rbxassetid://6412503613'
+        },
+        VibeMorning = {
+            SkyboxBk = 'rbxassetid://1417494030',
+            SkyboxDn = 'rbxassetid://1417494146',
+            SkyboxFt = 'rbxassetid://1417494253',
+            SkyboxLf = 'rbxassetid://1417494402',
+            SkyboxRt = 'rbxassetid://1417494499',
+            SkyboxUp = 'rbxassetid://1417494643'
+        },
+        VibeNight = {
+            SkyboxBk = 'rbxassetid://5084575798',
+            SkyboxDn = 'rbxassetid://5084575916',
+            SkyboxFt = 'rbxassetid://5103949679',
+            SkyboxLf = 'rbxassetid://5103948542',
+            SkyboxRt = 'rbxassetid://5103948784',
+            SkyboxUp = 'rbxassetid://5084576400'
+        },
+        PurpleSplash = {
+            SkyboxBk = 'rbxassetid://8539982183',
+            SkyboxDn = 'rbxassetid://8539981943',
+            SkyboxFt = 'rbxassetid://8539981721',
+            SkyboxLf = 'rbxassetid://8539981424',
+            SkyboxRt = 'rbxassetid://8539980766',
+            SkyboxUp = 'rbxassetid://8539981085'
+        },
+        GreenSpace = {
+            SkyboxBk = 'rbxassetid://159248188',
+            SkyboxDn = 'rbxassetid://159248183',
+            SkyboxFt = 'rbxassetid://159248187',
+            SkyboxLf = 'rbxassetid://159248173',
+            SkyboxRt = 'rbxassetid://159248192',
+            SkyboxUp = 'rbxassetid://159248176'
+        },
+        Snowy = {
+            SkyboxBk = 'rbxassetid://155657655',
+            SkyboxDn = 'rbxassetid://155674246',
+            SkyboxFt = 'rbxassetid://155657609',
+            SkyboxLf = 'rbxassetid://155657671',
+            SkyboxRt = 'rbxassetid://155657619',
+            SkyboxUp = 'rbxassetid://155674931'
+        },
+        Spongebob = {
+            SkyboxBk = 'rbxassetid://10287764626',
+            SkyboxDn = 'rbxassetid://10287766382',
+            SkyboxFt = 'rbxassetid://10287764626',
+            SkyboxLf = 'rbxassetid://10287763421',
+            SkyboxRt = 'rbxassetid://10287764626',
+            SkyboxUp = 'rbxassetid://10287767597'
+        },
+        PinkDay = {
+            SkyboxBk = 'rbxassetid://271042516',
+            SkyboxDn = 'rbxassetid://271077243',
+            SkyboxFt = 'rbxassetid://271042556',
+            SkyboxLf = 'rbxassetid://271042310',
+            SkyboxRt = 'rbxassetid://271042467',
+            SkyboxUp = 'rbxassetid://271077958'
+        },
+        AlienRed = {
+            SkyboxBk = 'rbxassetid://1012890',
+            SkyboxDn = 'rbxassetid://1012891',
+            SkyboxFt = 'rbxassetid://1012887',
+            SkyboxLf = 'rbxassetid://1012889',
+            SkyboxRt = 'rbxassetid://1012888',
+            SkyboxUp = 'rbxassetid://1014449'
+        },
+        WallsOfAutumn = {
+            SkyboxBk = 'rbxassetid://7123244709',
+            SkyboxDn = 'rbxassetid://7123246497',
+            SkyboxFt = 'rbxassetid://7123255895',
+            SkyboxLf = 'rbxassetid://7123257992',
+            SkyboxRt = 'rbxassetid://7123279103',
+            SkyboxUp = 'rbxassetid://7123281828'
+        },
+        ColdWinterness = {
+            SkyboxBk = 'rbxassetid://7123754562',
+            SkyboxDn = 'rbxassetid://7123756028',
+            SkyboxFt = 'rbxassetid://7123757422',
+            SkyboxLf = 'rbxassetid://7123758897',
+            SkyboxRt = 'rbxassetid://7123760563',
+            SkyboxUp = 'rbxassetid://7123762364'
+        },
+        Oblivion = {
+            SkyboxBk = 'rbxassetid://7123654189',
+            SkyboxDn = 'rbxassetid://7123657455',
+            SkyboxFt = 'rbxassetid://7123662047',
+            SkyboxLf = 'rbxassetid://7123664533',
+            SkyboxRt = 'rbxassetid://7123666598',
+            SkyboxUp = 'rbxassetid://7123668994'
+        },
+        ClassicSky = {
+            SkyboxBk = 'rbxassetid://672345740',
+            SkyboxDn = 'rbxassetid://672345828',
+            SkyboxFt = 'rbxassetid://672345879',
+            SkyboxLf = 'rbxassetid://672345927',
+            SkyboxRt = 'rbxassetid://672346006',
+            SkyboxUp = 'rbxassetid://672346072'
+        },
+        PurpleNight = {
+            SkyboxBk = 'rbxassetid://5084575798',
+            SkyboxDn = 'rbxassetid://5084575916',
+            SkyboxFt = 'rbxassetid://5103949679',
+            SkyboxLf = 'rbxassetid://5103948542',
+            SkyboxRt = 'rbxassetid://5103948784',
+            SkyboxUp = 'rbxassetid://5084576400'
+        },
+        PurpleDayClear = {
+            SkyboxBk = 'rbxassetid://6847607535',
+            SkyboxDn = 'rbxassetid://6847607977',
+            SkyboxFt = 'rbxassetid://6847608302',
+            SkyboxLf = 'rbxassetid://6847608608',
+            SkyboxRt = 'rbxassetid://6847608986',
+            SkyboxUp = 'rbxassetid://6847609323'
+        },
+        YellowDay = {
+            SkyboxBk = 'rbxassetid://2651432901',
+            SkyboxDn = 'rbxassetid://2651434974',
+            SkyboxFt = 'rbxassetid://2651435990',
+            SkyboxLf = 'rbxassetid://2651436494',
+            SkyboxRt = 'rbxassetid://2651436979',
+            SkyboxUp = 'rbxassetid://2651437350'
+        },
+        MinecraftSky = {
+            SkyboxBk = 'rbxassetid://8735166756',
+            SkyboxDn = 'rbxassetid://8735166707',
+            SkyboxFt = 'rbxassetid://8735231668',
+            SkyboxLf = 'rbxassetid://8735166755',
+            SkyboxRt = 'rbxassetid://8735166751',
+            SkyboxUp = 'rbxassetid://8735166729'
+        },
+        Sunset = {
+            SkyboxBk = 'rbxassetid://150939022',
+            SkyboxDn = 'rbxassetid://150939038',
+            SkyboxFt = 'rbxassetid://150939047',
+            SkyboxLf = 'rbxassetid://150939056',
+            SkyboxRt = 'rbxassetid://150939063',
+            SkyboxUp = 'rbxassetid://150939082'
+        },
+        CartoonSky = {
+            SkyboxBk = 'rbxassetid://6778646360',
+            SkyboxDn = 'rbxassetid://6778658683',
+            SkyboxFt = 'rbxassetid://6778648039',
+            SkyboxLf = 'rbxassetid://6778649136',
+            SkyboxRt = 'rbxassetid://6778650519',
+            SkyboxUp = 'rbxassetid://6778658364'
+        },
+        Anime = {
+            SkyboxBk = 'rbxassetid://7643700666',
+            SkyboxDn = 'rbxassetid://7643743687',
+            SkyboxFt = 'rbxassetid://7644304186',
+            SkyboxLf = 'rbxassetid://7644288724',
+            SkyboxRt = 'rbxassetid://7643700819',
+            SkyboxUp = 'rbxassetid://7643757404'
+        },
+        HellSky = {
+            SkyboxBk = 'rbxassetid://437430787',
+            SkyboxDn = 'rbxassetid://437430804',
+            SkyboxFt = 'rbxassetid://437430543',
+            SkyboxLf = 'rbxassetid://437430732',
+            SkyboxRt = 'rbxassetid://437430747',
+            SkyboxUp = 'rbxassetid://437430771'
+        },
+        StarryNight = {
+            SkyboxBk = 'rbxassetid://8291078911',
+            SkyboxDn = 'rbxassetid://8291077403',
+            SkyboxFt = 'rbxassetid://8291081613',
+            SkyboxLf = 'rbxassetid://8291074004',
+            SkyboxRt = 'rbxassetid://8291080353',
+            SkyboxUp = 'rbxassetid://8291075054'
+        },
+        Omori = {
+            SkyboxBk = 'rbxassetid://8767416629',
+            SkyboxDn = 'rbxassetid://8767416629',
+            SkyboxFt = 'rbxassetid://8767416629',
+            SkyboxLf = 'rbxassetid://8767416629',
+            SkyboxRt = 'rbxassetid://8767416629',
+            SkyboxUp = 'rbxassetid://8767416629'
+        },
+        c00lkidd = {
+            SkyboxBk = 'rbxassetid://433381097',
+            SkyboxDn = 'rbxassetid://433381097',
+            SkyboxFt = 'rbxassetid://433381097',
+            SkyboxLf = 'rbxassetid://433381097',
+            SkyboxRt = 'rbxassetid://433381097',
+            SkyboxUp = 'rbxassetid://433381097'
+        },
+        ClearDay = {
+            SkyboxBk = 'rbxassetid://591058823',
+            SkyboxDn = 'rbxassetid://591059876',
+            SkyboxFt = 'rbxassetid://591058104',
+            SkyboxLf = 'rbxassetid://591057861',
+            SkyboxRt = 'rbxassetid://591057625',
+            SkyboxUp = 'rbxassetid://591059642'
+        },
+        Mountains = {
+            SkyboxBk = 'rbxassetid://324014980',
+            SkyboxDn = 'rbxassetid://324015477',
+            SkyboxFt = 'rbxassetid://324014995',
+            SkyboxLf = 'rbxassetid://324014679',
+            SkyboxRt = 'rbxassetid://324015013',
+            SkyboxUp = 'rbxassetid://324015409'
+        },
+        Forest = {
+            SkyboxBk = 'rbxassetid://70945545',
+            SkyboxDn = 'rbxassetid://70945449',
+            SkyboxFt = 'rbxassetid://70945487',
+            SkyboxLf = 'rbxassetid://70945523',
+            SkyboxRt = 'rbxassetid://70945508',
+            SkyboxUp = 'rbxassetid://70945531'
+        },
+        LargeForest = {
+            SkyboxBk = 'rbxassetid://17428978603',
+            SkyboxDn = 'rbxassetid://17428977445',
+            SkyboxFt = 'rbxassetid://17428977114',
+            SkyboxLf = 'rbxassetid://17428978399',
+            SkyboxRt = 'rbxassetid://17428976828',
+            SkyboxUp = 'rbxassetid://17428976669'
+        },
+        Crimson = {
+            SkyboxBk = 'rbxassetid://15832429892',
+            SkyboxDn = 'rbxassetid://15832430998',
+            SkyboxFt = 'rbxassetid://15832430210',
+            SkyboxLf = 'rbxassetid://15832430671',
+            SkyboxRt = 'rbxassetid://15832431198',
+            SkyboxUp = 'rbxassetid://15832429401'
+        },
+        PumpkinHill = {
+            SkyboxBk = 'rbxassetid://11202510597',
+            SkyboxDn = 'rbxassetid://11202510255',
+            SkyboxFt = 'rbxassetid://11202509993',
+            SkyboxLf = 'rbxassetid://11202510806',
+            SkyboxRt = 'rbxassetid://11202511066',
+            SkyboxUp = 'rbxassetid://11202509704'
+        },
+        AnimeIsland = {
+            SkyboxBk = 'rbxassetid://14753804949',
+            SkyboxDn = 'rbxassetid://14753795573',
+            SkyboxFt = 'rbxassetid://14753807625',
+            SkyboxLf = 'rbxassetid://14753797417',
+            SkyboxRt = 'rbxassetid://14753799966',
+            SkyboxUp = 'rbxassetid://14753810287'
+        },
+        SnowyMountains = {
+            SkyboxBk = 'rbxassetid://368385273',
+            SkyboxDn = 'rbxassetid://48015300',
+            SkyboxFt = 'rbxassetid://368388290',
+            SkyboxLf = 'rbxassetid://368390615',
+            SkyboxRt = 'rbxassetid://368385190',
+            SkyboxUp = 'rbxassetid://48015387'
+        },
+        Desert = {
+            SkyboxBk = 'rbxassetid://161319957',
+            SkyboxDn = 'rbxassetid://161319965',
+            SkyboxFt = 'rbxassetid://161319970',
+            SkyboxLf = 'rbxassetid://161319983',
+            SkyboxRt = 'rbxassetid://161319989',
+            SkyboxUp = 'rbxassetid://161319996'
+        },
+        Cloudy = {
+            SkyboxBk = 'rbxassetid://225469345',
+            SkyboxDn = 'rbxassetid://225469349',
+            SkyboxFt = 'rbxassetid://225469359',
+            SkyboxLf = 'rbxassetid://225469364',
+            SkyboxRt = 'rbxassetid://225469372',
+            SkyboxUp = 'rbxassetid://225469380'
+        },
+        Island = {
+            SkyboxBk = 'rbxassetid://319343577',
+            SkyboxDn = 'rbxassetid://319343653',
+            SkyboxFt = 'rbxassetid://319343666',
+            SkyboxLf = 'rbxassetid://319343686',
+            SkyboxRt = 'rbxassetid://319343631',
+            SkyboxUp = 'rbxassetid://319343614'
+        },
+        OrangeFog = {
+            SkyboxBk = 'rbxassetid://458016711',
+            SkyboxDn = 'rbxassetid://458016826',
+            SkyboxFt = 'rbxassetid://458016532',
+            SkyboxLf = 'rbxassetid://458016655',
+            SkyboxRt = 'rbxassetid://458016782',
+            SkyboxUp = 'rbxassetid://458016792'
+        },
+        FadeNight = {
+            SkyboxBk = 'rbxassetid://16888843486',
+            SkyboxDn = 'rbxassetid://16888845693',
+            SkyboxFt = 'rbxassetid://16888848245',
+            SkyboxLf = 'rbxassetid://16888850949',
+            SkyboxRt = 'rbxassetid://16888854243',
+            SkyboxUp = 'rbxassetid://16888857144'
+        },
+        Office = {
+            SkyboxBk = 'rbxassetid://658623433',
+            SkyboxDn = 'rbxassetid://316342560',
+            SkyboxFt = 'rbxassetid://658625205',
+            SkyboxLf = 'rbxassetid://658627155',
+            SkyboxRt = 'rbxassetid://658628504',
+            SkyboxUp = 'rbxassetid://658632701'
+        },
+        Spongebob2 = {
+            SkyboxBk = 'rbxassetid://12049872454',
+            SkyboxDn = 'rbxassetid://12049872284',
+            SkyboxFt = 'rbxassetid://12049872181',
+            SkyboxLf = 'rbxassetid://12049872074',
+            SkyboxRt = 'rbxassetid://12049871884',
+            SkyboxUp = 'rbxassetid://12049871774'
+        },
+        PurpleFog = {
+            SkyboxBk = 'rbxassetid://17279854976',
+            SkyboxDn = 'rbxassetid://17279856318',
+            SkyboxFt = 'rbxassetid://17279858447',
+            SkyboxLf = 'rbxassetid://17279860360',
+            SkyboxRt = 'rbxassetid://17279862234',
+            SkyboxUp = 'rbxassetid://17279864507'
+        },
+        EarthSpace = {
+            SkyboxBk = 'rbxassetid://15753305495',
+            SkyboxDn = 'rbxassetid://15753362674',
+            SkyboxFt = 'rbxassetid://15753305823',
+            SkyboxLf = 'rbxassetid://15753310707',
+            SkyboxRt = 'rbxassetid://15753304774',
+            SkyboxUp = 'rbxassetid://15753304473'
+        },
+        GreenCloudy = {
+            SkyboxBk = 'rbxassetid://921882045',
+            SkyboxDn = 'rbxassetid://921881907',
+            SkyboxFt = 'rbxassetid://921882121',
+            SkyboxLf = 'rbxassetid://921881811',
+            SkyboxRt = 'rbxassetid://921881989',
+            SkyboxUp = 'rbxassetid://921882259'
+        },
+        SummerDay = {
+            SkyboxBk = 'rbxassetid://135483466',
+            SkyboxDn = 'rbxassetid://135483484',
+            SkyboxFt = 'rbxassetid://135483461',
+            SkyboxLf = 'rbxassetid://135483495',
+            SkyboxRt = 'rbxassetid://135483499',
+            SkyboxUp = 'rbxassetid://135483475'
+        },
+        SnowyPlains = {
+            SkyboxBk = 'rbxassetid://155657655',
+            SkyboxDn = 'rbxassetid://155674246',
+            SkyboxFt = 'rbxassetid://155657609',
+            SkyboxLf = 'rbxassetid://155657671',
+            SkyboxRt = 'rbxassetid://155657619',
+            SkyboxUp = 'rbxassetid://155674931'
+        },
+        Underwater = {
+            SkyboxBk = 'rbxassetid://227635868',
+            SkyboxDn = 'rbxassetid://227635921',
+            SkyboxFt = 'rbxassetid://227635954',
+            SkyboxLf = 'rbxassetid://227635974',
+            SkyboxRt = 'rbxassetid://227635990',
+            SkyboxUp = 'rbxassetid://227636031'
+        },
+        BlueAbyss = {
+            SkyboxBk = 'rbxassetid://16269815885',
+            SkyboxDn = 'rbxassetid://16269839652',
+            SkyboxFt = 'rbxassetid://16269798011',
+            SkyboxLf = 'rbxassetid://16269813852',
+            SkyboxRt = 'rbxassetid://16269814948',
+            SkyboxUp = 'rbxassetid://16269829700'
+        },
+        Poison = {
+            SkyboxBk = 'rbxassetid://1370716695',
+            SkyboxDn = 'rbxassetid://1370716766',
+            SkyboxFt = 'rbxassetid://1370716833',
+            SkyboxLf = 'rbxassetid://1370716898',
+            SkyboxRt = 'rbxassetid://1370716955',
+            SkyboxUp = 'rbxassetid://1370717024'
+        },
+        BlueSpace = {
+            SkyboxBk = 'rbxassetid://1127563035',
+            SkyboxDn = 'rbxassetid://1127563006',
+            SkyboxFt = 'rbxassetid://1127563026',
+            SkyboxLf = 'rbxassetid://1127563216',
+            SkyboxRt = 'rbxassetid://1127563115',
+            SkyboxUp = 'rbxassetid://1127562999'
+        },
+        AnimeMountains = {
+            SkyboxBk = 'rbxassetid://12849370744',
+            SkyboxDn = 'rbxassetid://12849378890',
+            SkyboxFt = 'rbxassetid://12849390276',
+            SkyboxLf = 'rbxassetid://12849405549',
+            SkyboxRt = 'rbxassetid://12849398428',
+            SkyboxUp = 'rbxassetid://12849426002'
+        },
+        PinkGradient = {
+            SkyboxBk = 'rbxassetid://5371541816',
+            SkyboxDn = 'rbxassetid://5371541154',
+            SkyboxFt = 'rbxassetid://5371541816',
+            SkyboxLf = 'rbxassetid://5371541816',
+            SkyboxRt = 'rbxassetid://5371541816',
+            SkyboxUp = 'rbxassetid://5371540604'
+        },
+        YellowGradient = {
+            SkyboxBk = 'rbxassetid://159005370',
+            SkyboxDn = 'rbxassetid://858422412',
+            SkyboxFt = 'rbxassetid://159005370',
+            SkyboxLf = 'rbxassetid://159005370',
+            SkyboxRt = 'rbxassetid://159005370',
+            SkyboxUp = 'rbxassetid://159006363'
+        },
+        BlueGradient = {
+            SkyboxBk = 'rbxassetid://4628466090',
+            SkyboxDn = 'rbxassetid://4628471901',
+            SkyboxFt = 'rbxassetid://4628466090',
+            SkyboxLf = 'rbxassetid://4628466090',
+            SkyboxRt = 'rbxassetid://4628466090',
+            SkyboxUp = 'rbxassetid://4628472152'
+        },
+        GreenNebula = {
+            SkyboxBk = 'rbxassetid://47974894',
+            SkyboxDn = 'rbxassetid://47974690',
+            SkyboxFt = 'rbxassetid://47974821',
+            SkyboxLf = 'rbxassetid://47974776',
+            SkyboxRt = 'rbxassetid://47974859',
+            SkyboxUp = 'rbxassetid://47974909'
+        },
+        OrangeGradient = {
+            SkyboxBk = 'rbxassetid://6902754982',
+            SkyboxDn = 'rbxassetid://6902795826',
+            SkyboxFt = 'rbxassetid://6902754982',
+            SkyboxLf = 'rbxassetid://6902754982',
+            SkyboxRt = 'rbxassetid://6902754982',
+            SkyboxUp = 'rbxassetid://6902796078'
+        },
+        GreenAurora = {
+            SkyboxBk = 'rbxassetid://16563478983',
+            SkyboxDn = 'rbxassetid://16563481302',
+            SkyboxFt = 'rbxassetid://16563484084',
+            SkyboxLf = 'rbxassetid://16563485362',
+            SkyboxRt = 'rbxassetid://16563487078',
+            SkyboxUp = 'rbxassetid://16563489821'
+        }
+    }
+
+    local function saveOriginal()
+        if savedSky ~= nil then return end
+        local sky = Lighting:FindFirstChildWhichIsA('Sky')
+        if sky then
+            savedSky = {
+                Bk = sky.SkyboxBk,
+                Dn = sky.SkyboxDn,
+                Ft = sky.SkyboxFt,
+                Lf = sky.SkyboxLf,
+                Rt = sky.SkyboxRt,
+                Up = sky.SkyboxUp,
+                Name = sky.Name
+            }
+        else
+            savedSky = false
+        end
+        savedLighting = {
+            ClockTime = Lighting.ClockTime,
+            Brightness = Lighting.Brightness,
+            Ambient = Lighting.Ambient,
+            OutdoorAmbient = Lighting.OutdoorAmbient,
+            ColorShift_Bottom = Lighting.ColorShift_Bottom,
+            FogColor = Lighting.FogColor,
+            FogEnd = Lighting.FogEnd,
+            ShadowSoftness = Lighting.ShadowSoftness,
+            ExposureCompensation = Lighting.ExposureCompensation
+        }
+    end
+
+    local function clearSkies()
+        for _, sky in Lighting:GetChildren() do
+            if sky:IsA('Sky') then
+                sky:Destroy()
+            end
+        end
+    end
+
+    local function cleanupEffects()
+        if rainConnection then
+            rainConnection:Disconnect()
+            rainConnection = nil
+        end
+        if rainSound then
+            rainSound:Destroy()
+            rainSound = nil
+        end
+        local folder = Workspace:FindFirstChild('RainFolder')
+        if folder then
+            folder:Destroy()
+        end
+    end
+
+    local function applyLighting(props)
+        for k, v in props do
+            Lighting[k] = v
+        end
+    end
+
+    local function makeSky(data, name)
+        local sky = Instance.new('Sky')
+        sky.SkyboxBk = data.SkyboxBk
+        sky.SkyboxDn = data.SkyboxDn
+        sky.SkyboxFt = data.SkyboxFt
+        sky.SkyboxLf = data.SkyboxLf
+        sky.SkyboxRt = data.SkyboxRt
+        sky.SkyboxUp = data.SkyboxUp
+        sky.Name = name or 'CustomSkybox'
+        sky.Parent = Lighting
+    end
+
+    local MoonSky = {
+        SkyboxBk = 'rbxassetid://4498828382',
+        SkyboxDn = 'rbxassetid://4498828812',
+        SkyboxFt = 'rbxassetid://4498829917',
+        SkyboxLf = 'rbxassetid://4498830911',
+        SkyboxRt = 'rbxassetid://4498830417',
+        SkyboxUp = 'rbxassetid://4498831746'
+    }
+
+    local presets = {
+        Sun = function()
+            applyLighting({
+                ClockTime = 7,
+                Brightness = 2,
+                Ambient = Color3.fromRGB(255, 210, 160),
+                OutdoorAmbient = Color3.fromRGB(200, 200, 255),
+                ColorShift_Bottom = Color3.fromRGB(0, 0, 0),
+                FogColor = Color3.fromRGB(255, 170, 100),
+                FogEnd = 100000,
+                ShadowSoftness = 0.2,
+                ExposureCompensation = 0
+            })
+            makeSky({
+                SkyboxBk = 'rbxassetid://541743453',
+                SkyboxDn = 'rbxassetid://541743443',
+                SkyboxFt = 'rbxassetid://541743446',
+                SkyboxLf = 'rbxassetid://541743436',
+                SkyboxRt = 'rbxassetid://541743435',
+                SkyboxUp = 'rbxassetid://541743441'
+            }, 'SunSkybox')
+        end,
+        Moon = function()
+            applyLighting({
+                ClockTime = 21,
+                Brightness = 1,
+                Ambient = Color3.fromRGB(0, 0, 0),
+                OutdoorAmbient = Color3.fromRGB(128, 128, 128),
+                ColorShift_Bottom = Color3.fromRGB(0, 0, 0),
+                FogColor = Color3.fromRGB(150, 150, 150),
+                FogEnd = 100000,
+                ShadowSoftness = 0.2,
+                ExposureCompensation = 0
+            })
+            makeSky(MoonSky, 'MoonSkybox')
+        end,
+        Moonly = function()
+            applyLighting({
+                ClockTime = 19,
+                Brightness = 0.02,
+                Ambient = Color3.fromRGB(140, 170, 180),
+                OutdoorAmbient = Color3.fromRGB(180, 200, 210),
+                ColorShift_Bottom = Color3.fromRGB(100, 120, 130),
+                FogColor = Color3.fromRGB(180, 200, 210),
+                FogEnd = 3000,
+                ShadowSoftness = 0.4,
+                ExposureCompensation = 0.3
+            })
+        end,
+        LateDay = function()
+            applyLighting({
+                ClockTime = 15,
+                Brightness = 1.8,
+                Ambient = Color3.fromRGB(180, 140, 100),
+                OutdoorAmbient = Color3.fromRGB(200, 160, 120),
+                ColorShift_Bottom = Color3.fromRGB(30, 20, 10),
+                FogColor = Color3.fromRGB(100, 80, 60),
+                FogEnd = 1000,
+                ShadowSoftness = 0.2,
+                ExposureCompensation = 0
+            })
+        end,
+        Rain = function()
+            applyLighting({
+                ClockTime = 21,
+                Brightness = 1,
+                Ambient = Color3.fromRGB(50, 50, 60),
+                OutdoorAmbient = Color3.fromRGB(100, 100, 120),
+                ColorShift_Bottom = Color3.fromRGB(0, 0, 0),
+                FogColor = Color3.fromRGB(100, 100, 120),
+                FogEnd = 100000,
+                ShadowSoftness = 0.2,
+                ExposureCompensation = 0
+            })
+            makeSky(MoonSky, 'RainSkybox')
+
+            local RAIN_AREA = 200
+            local RAIN_HEIGHT = 50
+            local RAIN_SPEED = 120
+            local RAIN_COUNT = 50
+            local DROP_SIZE = Vector3.new(0.05, 3, 0.05)
+
+            local RainFolder = Instance.new('Folder')
+            RainFolder.Name = 'RainFolder'
+            RainFolder.Parent = Workspace
+
+            local dropOffsets = {}
+            for i = 1, RAIN_COUNT do
+                dropOffsets[i] = {
+                    x = math.random(-RAIN_AREA / 2, RAIN_AREA / 2),
+                    z = math.random(-RAIN_AREA / 2, RAIN_AREA / 2),
+                    y = math.random(0, RAIN_HEIGHT)
+                }
+            end
+
+            local raindrops = {}
+            for i = 1, RAIN_COUNT do
+                local drop = Instance.new('Part')
+                drop.Size = DROP_SIZE
+                drop.Anchored = true
+                drop.CanCollide = false
+                drop.CastShadow = false
+                drop.Material = Enum.Material.SmoothPlastic
+                drop.Color = Color3.fromRGB(160, 200, 255)
+                drop.Transparency = 0.5
+                drop.Position = Vector3.new(dropOffsets[i].x, dropOffsets[i].y, dropOffsets[i].z)
+                drop.Parent = RainFolder
+                raindrops[i] = drop
+            end
+
+            local lastPosition = Vector3.zero
+            rainConnection = RunService.RenderStepped:Connect(function(deltaTime)
+                local rootPos = lastPosition
+                local char = lplr.Character
+                local root = char and char:FindFirstChild('HumanoidRootPart')
+                if root then
+                    rootPos = root.Position
+                    lastPosition = rootPos
+                end
+
+                for i, drop in raindrops do
+                    dropOffsets[i].y = dropOffsets[i].y - RAIN_SPEED * deltaTime
+                    if dropOffsets[i].y < (rootPos.Y - 10) then
+                        dropOffsets[i].y = rootPos.Y + RAIN_HEIGHT
+                        dropOffsets[i].x = math.random(-RAIN_AREA / 2, RAIN_AREA / 2)
+                        dropOffsets[i].z = math.random(-RAIN_AREA / 2, RAIN_AREA / 2)
+                    end
+                    drop.Position = Vector3.new(rootPos.X + dropOffsets[i].x, dropOffsets[i].y, rootPos.Z + dropOffsets[i].z)
+                end
+            end)
+
+            rainSound = Instance.new('Sound')
+            rainSound.Name = 'RainAmbience'
+            rainSound.SoundId = 'rbxassetid://365362615'
+            rainSound.Looped = true
+            rainSound.Volume = 0.4
+            rainSound.Parent = Workspace
+            rainSound:Play()
+        end
+    }
+
+    local function applyMode(name)
+        clearSkies()
+        cleanupEffects()
+        if presets[name] then
+            presets[name]()
+            return
+        end
+        local data = Skyboxes[name]
+        if not data then return end
+        applyLighting({
+            ClockTime = 14,
+            Brightness = 2,
+            Ambient = Color3.fromRGB(70, 70, 70),
+            OutdoorAmbient = Color3.fromRGB(128, 128, 128),
+            ColorShift_Bottom = Color3.fromRGB(0, 0, 0),
+            FogColor = Color3.fromRGB(191, 191, 191),
+            FogEnd = 100000,
+            ShadowSoftness = 0.2,
+            ExposureCompensation = 0
+        })
+        makeSky(data)
+    end
+
+    local function restore()
+        clearSkies()
+        cleanupEffects()
+        if savedLighting then
+            applyLighting(savedLighting)
+        end
+        if savedSky then
+            local sky = Instance.new('Sky')
+            sky.SkyboxBk = savedSky.Bk
+            sky.SkyboxDn = savedSky.Dn
+            sky.SkyboxFt = savedSky.Ft
+            sky.SkyboxLf = savedSky.Lf
+            sky.SkyboxRt = savedSky.Rt
+            sky.SkyboxUp = savedSky.Up
+            sky.Name = savedSky.Name
+            sky.Parent = Lighting
+        end
+    end
+
+    CustomSky = vape.Categories.World:CreateModule({
+        Name = 'CustomSky',
+        Function = function(callback)
+            if callback then
+                saveOriginal()
+                applyMode(SkyMode.Value)
+            else
+                restore()
+            end
+        end,
+        Tooltip = 'Custom skybox'
+    })
+
+    local modes = {'Sun', 'Moon', 'Moonly', 'Rain', 'LateDay'}
+    for name in Skyboxes do
+        table.insert(modes, name)
+    end
+    table.sort(modes)
+
+    SkyMode = CustomSky:CreateDropdown({
+        Name = 'Skybox',
+        List = modes,
+        Function = function(val)
+            if CustomSky.Enabled then
+                applyMode(val)
+            end
+        end
+    })
+
+    vape:Clean(function()
+        if CustomSky.Enabled then
+            restore()
+        end
+    end)
+end)
 
 run(function()
     local InfiniteFly = {Enabled = false}
