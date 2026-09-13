@@ -2827,58 +2827,76 @@ run(function()
 end)
 	
 run(function()
-    local NoFall
-    local groundHitConnection
-    local groundHitSent = false
-
-    NoFall = vape.Categories.Blatant:CreateModule({
-        Name = 'NoFall',
-        Function = function(callback)
-            if not callback then
-                if groundHitConnection then
-                    pcall(function() groundHitConnection:Disconnect() end)
-                    groundHitConnection = nil
-                end
-                groundHitSent = false
-                return
-            end
-
-            if groundHitConnection then return end
-
-            groundHitConnection = runService.PreSimulation:Connect(function()
-                if not entitylib.isAlive then
-                    groundHitSent = false
-                    return
-                end
-
-                local character = entitylib.character
-                local root = character.RootPart
-                local humanoid = character.Humanoid
-                if not root or not humanoid then return end
-
-                if humanoid.FloorMaterial ~= Enum.Material.Air then
-                    groundHitSent = false
-                    return
-                end
-
-                if not groundHitSent and root.AssemblyLinearVelocity.Y < -35 then
-                    groundHitSent = true
-                    pcall(function()
-                        local remote = bedwars.Client:Get('GroundHit')
-                        remote:SendToServer(
-                            nil,
-                            Vector3.new(0, 0, 0),
-                            workspace:GetServerTimeNow()
-                        )
-                    end)
-                elseif root.AssemblyLinearVelocity.Y > -10 then
-                    groundHitSent = false
-                end
-            end)
-            NoFall:Clean(groundHitConnection)
-        end,
-        Tooltip = 'no fall damage.'
-    })
+	local NoFall
+	local Damage
+	local disabled = setmetatable({}, {__mode = 'k'})
+	local groundHit = bedwars.Handler:Get('GroundHit')
+	
+	NoFall = vape.Categories.Blatant:CreateModule({
+		Name = 'NoFall',
+		Function = function(callback)
+			if callback then
+				local humanoid = entitylib.isAlive and entitylib.character.Humanoid
+				if humanoid and not disabled[humanoid] and getconnections then
+					disabled[humanoid] = {}
+					for _, v in getconnections(humanoid.StateChanged) do
+						v:Disable()
+						table.insert(disabled[humanoid], v)
+					end
+				end
+	
+				local tracked = 0
+				NoFall:Clean(runService.PostSimulation:Connect(function()
+					if entitylib.isAlive and store.matchState == 1 and not store.infinitefly then
+						local root = entitylib.character.RootPart
+						local velo = root.AssemblyLinearVelocity
+	
+						if tracked < -(45 + (Damage.Value * 0.75)) then
+							root.AssemblyLinearVelocity = Vector3.new(0, 2.5, 0)
+							entitylib.character.Humanoid:ChangeState(Enum.HumanoidStateType.Landed)
+							runService.PreRender:Wait()
+							root.AssemblyLinearVelocity = velo
+							groundHit:Fire('SendToServer', nil, Vector3.new(0, tracked, 0), workspace:GetServerTimeNow())
+						end
+						tracked = velo.Y
+					else
+						tracked = 0
+					end
+				end))
+	
+				NoFall:Clean(entitylib.Events.LocalAdded:Connect(function(ent)
+					if ent.Humanoid:WaitForChild('Animator', 5) then
+						task.wait(0.5)
+						if NoFall.Enabled and not disabled[ent.Humanoid] and getconnections then
+							disabled[ent.Humanoid] = {}
+							for _, v in getconnections(ent.Humanoid.StateChanged) do
+								v:Disable()
+								table.insert(disabled[ent.Humanoid], v)
+							end
+						end
+					end
+				end))
+			else
+				for _, v in disabled do
+					for _, v2 in v do
+						v2:Enable()
+					end
+				end
+	
+				table.clear(disabled)
+			end
+		end,
+		Tooltip = 'Prevents taking fall damage.'
+	})
+	
+	Damage = NoFall:CreateSlider({
+		Name = 'Damage',
+		Min = 0,
+		Max = 100,
+		Default = 0,
+		Suffix = '%',
+		Tooltip = 'How much of each fall lands on you, it only starts saving you once you are dropping faster than this lets through'
+	})
 end)
 	
 run(function()
