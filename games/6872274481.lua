@@ -11315,6 +11315,11 @@ run(function()
     })
 end)
 
+local oldcloneroot
+local cananticheatbypass = true
+local oldcloneroot
+local cananticheatbypass = true
+runFunction(function()
 local InfiniteFly = {Enabled = false}
 local InfiniteFlyMode = {Value = 'CFrame'}
 local InfiniteFlySpeed = {Value = 23}
