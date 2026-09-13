@@ -64,7 +64,6 @@ local function downloadFile(path, func)
     return (func or readfile)(path)
 end
 
--- Fixed Profile Downloading with Correct Capitalisation
 local function forceDownloadProfile(urlPath, localPath)
     local s, res = pcall(function()
         return game:HttpGet(repo .. urlPath, true)
