@@ -12,7 +12,7 @@ Original Vape V4 development team.
 
 The FlowVape maintainers for customizations, UI, and asset handling, (Complexware, Fanware)
 
-Dev, Bug Fixer, (Jayz)
+Dev, Bug Fixer, (Jayz, Complex)
 
 🚀 Installation
 
