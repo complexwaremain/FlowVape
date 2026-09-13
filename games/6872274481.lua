@@ -2888,15 +2888,6 @@ run(function()
 		end,
 		Tooltip = 'Prevents taking fall damage.'
 	})
-	
-	Damage = NoFall:CreateSlider({
-		Name = 'Damage',
-		Min = 0,
-		Max = 100,
-		Default = 0,
-		Suffix = '%',
-		Tooltip = 'How much of each fall lands on you, it only starts saving you once you are dropping faster than this lets through'
-	})
 end)
 	
 run(function()
