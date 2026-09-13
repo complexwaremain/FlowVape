@@ -11377,7 +11377,7 @@ run(function()
         end)
     end
 
-    InfiniteFly = vape.Categories.Blatant:CreateModule({
+    InfiniteFly = GuiLibrary.ObjectsThatCanBeSaved.BlatantWindow.Api.CreateOptionsButton({
         Name = 'InfiniteFly',
         Function = function(callback)
             if callback then
@@ -11389,7 +11389,7 @@ run(function()
                     InfiniteFly.ToggleButton(false)
                     return 
                 end
-                InfiniteFly:Clean(inputService.InputBegan:Connect(function(input1)
+                table.insert(InfiniteFly.Connections, inputService.InputBegan:Connect(function(input1)
                     if InfiniteFlyVertical.Enabled and inputService:GetFocusedTextBox() == nil then
                         if input1.KeyCode == Enum.KeyCode.Space or input1.KeyCode == Enum.KeyCode.ButtonA then
                             InfiniteFlyUp = true
@@ -11399,7 +11399,7 @@ run(function()
                         end
                     end
                 end))
-                InfiniteFly:Clean(inputService.InputEnded:Connect(function(input1)
+                table.insert(InfiniteFly.Connections, inputService.InputEnded:Connect(function(input1)
                     if input1.KeyCode == Enum.KeyCode.Space or input1.KeyCode == Enum.KeyCode.ButtonA then
                         InfiniteFlyUp = false
                     end
@@ -11410,7 +11410,7 @@ run(function()
                 if inputService.TouchEnabled then
                     pcall(function()
                         local jumpButton = lplr.PlayerGui.TouchGui.TouchControlFrame.JumpButton
-                        InfiniteFly:Clean(jumpButton:GetPropertyChangedSignal('ImageRectOffset'):Connect(function()
+                        table.insert(InfiniteFly.Connections, jumpButton:GetPropertyChangedSignal('ImageRectOffset'):Connect(function()
                             InfiniteFlyUp = jumpButton.ImageRectOffset.X == 146
                         end))
                         InfiniteFlyUp = jumpButton.ImageRectOffset.X == 146
@@ -11430,7 +11430,9 @@ run(function()
                         clone = oldcloneroot:Clone()
                         clone.Parent = lplr.Character
                         oldcloneroot.Parent = gameCamera
-                        bedwars.QueryUtil:setQueryIgnored(oldcloneroot, true)
+                        pcall(function()
+                            bedwars.QueryUtil:setQueryIgnored(oldcloneroot, true)
+                        end)
                         clone.CFrame = oldcloneroot.CFrame
                         lplr.Character.PrimaryPart = clone
                         lplr.Character.Parent = workspace
@@ -11548,28 +11550,28 @@ run(function()
                 InfiniteFlyDown = false
             end
         end,
-        Tooltip = 'Makes you go zoom'
+        HoverText = 'Makes you go zoom',
+        ExtraText = function()
+            return 'Heatseeker'
+        end
     })
-
-    InfiniteFlySpeed = InfiniteFly:CreateSlider({
+    InfiniteFlySpeed = InfiniteFly.CreateSlider({
         Name = 'Speed',
         Min = 1,
         Max = 23,
-        Default = 23,
-        Function = function(val) end
+        Function = function(val) end, 
+        Default = 23
     })
-
-    InfiniteFlyVerticalSpeed = InfiniteFly:CreateSlider({
+    InfiniteFlyVerticalSpeed = InfiniteFly.CreateSlider({
         Name = 'Vertical Speed',
         Min = 1,
         Max = 100,
-        Default = 44,
-        Function = function(val) end
+        Function = function(val) end, 
+        Default = 44
     })
-
-    InfiniteFlyVertical = InfiniteFly:CreateToggle({
+    InfiniteFlyVertical = InfiniteFly.CreateToggle({
         Name = 'Y Level',
-        Default = true,
-        Function = function() end
+        Function = function() end, 
+        Default = true
     })
 end)
