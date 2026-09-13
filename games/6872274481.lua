@@ -12397,3 +12397,98 @@ run(function()
         end
     end)
 end)																																																																																																												
+
+run(function()
+	local MemoryFixer
+	local Sync
+	local Interval
+	local Notify
+	local signals = {'Heartbeat', 'PostSimulation', 'PreAnimation', 'PreRender', 'PreSimulation', 'RenderStepped', 'Stepped'}
+	
+	local function clean()
+		if not getconnections or not getfunctionhash or not isexecutorclosure then
+			return 0
+		end
+	
+		local removed, seen = 0, {}
+		for _, v in signals do
+			for _, v2 in getconnections(runService[v]) do
+				if v2.Function and not v2.ForeignState and isexecutorclosure(v2.Function) then
+					local hash = v..getfunctionhash(v2.Function)
+					if seen[hash] then
+						v2:Disconnect()
+						removed += 1
+					else
+						seen[hash] = true
+					end
+				end
+			end
+		end
+	
+		if Sync.Enabled then
+			for _, v in bedwars.SyncEvents do
+				if typeof(v) == 'table' and typeof(v.entries) == 'table' then
+					table.clear(seen)
+					for i2, v2 in v.entries do
+						local callback = v2.callbackInfo and v2.callbackInfo.callback
+						if callback and isexecutorclosure(callback) then
+							local hash = getfunctionhash(callback)
+							if seen[hash] then
+								v.entries[i2] = nil
+								v.isSorted = false
+								removed += 1
+							else
+								seen[hash] = true
+							end
+						end
+					end
+				end
+			end
+		end
+	
+		return removed
+	end
+	
+	MemoryFixer = vape.Categories.Utility:CreateModule({
+		Name = 'MemoryFixer',
+		Function = function(callback)
+			if callback then
+				task.spawn(function()
+					repeat
+						local removed = clean()
+						if Notify.Enabled and removed > 0 then
+							notif('MemoryFixer', `Dropped {removed} leftover connection{removed == 1 and '' or 's'}`, 5)
+						end
+						task.wait(Interval.Value)
+					until not MemoryFixer.Enabled
+				end)
+			end
+		end,
+		Tooltip = 'Drops the duplicate loops and listeners an older injection left connected'
+	})
+	
+	Sync = MemoryFixer:CreateToggle({
+		Name = 'Sync events',
+		Default = true,
+		Tooltip = 'Also prunes duplicate bedwars sync event listeners, the ones that survive a reinject'
+	})
+	Interval = MemoryFixer:CreateSlider({
+		Name = 'Interval',
+		Min = 5,
+		Max = 300,
+		Default = 30,
+		Suffix = 'seconds'
+	})
+	Notify = MemoryFixer:CreateToggle({
+		Name = 'Notify',
+		Default = true,
+		Tooltip = 'Tells you how many it dropped'
+	})
+	MemoryFixer:CreateButton({
+		Name = 'Clean now',
+		Function = function()
+			local removed = clean()
+			notif('MemoryFixer', `Dropped {removed} leftover connection{removed == 1 and '' or 's'}`, 5)
+		end
+	})
+end)
