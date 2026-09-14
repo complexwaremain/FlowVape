@@ -9505,6 +9505,94 @@ run(function()
     })
 end)
 
+run(function()
+    local NoFall
+    local NoFallMode
+    local groundRemote
+    local lastSend = 0
+
+    NoFall = vape.Categories.Blatant:CreateModule({
+        Name = 'NoFall',
+        Tooltip = 'Prevents taking fall damage',
+        Function = function(callback)
+            if callback then
+                if not groundRemote then
+                    pcall(function()
+                        local remoteName = (remotes.GroundHit and remotes.GroundHit ~= '') and remotes.GroundHit or 'GroundHit'
+                        groundRemote = bedwars.Client:Get(remoteName).instance
+                    end)
+                end
+                if not groundRemote then
+                    vape:CreateNotification('NoFall', 'GroundHit remote not found', 3, 'alert')
+                    NoFall:Toggle()
+                    return
+                end
+
+                if NoFallMode.Value == 'Gravity' then
+                    local offset = 0
+                    local castParams = RaycastParams.new()
+                    castParams.RespectCanCollide = true
+                    NoFall:Clean(runService.PreSimulation:Connect(function(delta)
+                        if not entitylib.isAlive then
+                            offset = 0
+                            return
+                        end
+                        local root = entitylib.character.RootPart
+                        if root.AssemblyLinearVelocity.Y < -85 then
+                            castParams.FilterDescendantsInstances = {lplr.Character, gameCamera}
+                            castParams.CollisionGroup = root.CollisionGroup
+                            local hip = root.Size.Y / 2 + entitylib.character.HipHeight
+                            local hit = workspace:Blockcast(root.CFrame, Vector3.new(3, 3, 3), Vector3.new(0, (offset * 0.1) - hip, 0), castParams)
+                            if not hit then
+                                root.AssemblyLinearVelocity = Vector3.new(root.AssemblyLinearVelocity.X, -86, root.AssemblyLinearVelocity.Z)
+                                root.CFrame += Vector3.new(0, offset * delta, 0)
+                                offset -= workspace.Gravity * delta
+                            end
+                        else
+                            offset = 0
+                        end
+                    end))
+                else
+                    local peak = 0
+                    NoFall:Clean(runService.Heartbeat:Connect(function()
+                        if not entitylib.isAlive then
+                            peak = 0
+                            return
+                        end
+                        local root = entitylib.character.RootPart
+                        local humanoid = entitylib.character.Humanoid
+                        if not root or not humanoid then return end
+
+                        peak = humanoid.FloorMaterial == Enum.Material.Air and math.min(peak, root.AssemblyLinearVelocity.Y) or 0
+
+                        if peak < -85 and tick() - lastSend >= 0.03 then
+                            lastSend = tick()
+                            pcall(function()
+                                humanoid:ChangeState(Enum.HumanoidStateType.Freefall)
+                            end)
+                            task.spawn(function()
+                                pcall(function()
+                                    groundRemote:FireServer(workspace, Vector3.new(0, peak, 0), workspace:GetServerTimeNow() + 0.35)
+                                end)
+                            end)
+                        end
+                    end))
+                end
+            end
+        end
+    })
+
+    NoFallMode = NoFall:CreateDropdown({
+        Name = 'Mode',
+        List = {'Packet', 'Gravity'},
+        Function = function()
+            if NoFall.Enabled then
+                NoFall:Toggle()
+                NoFall:Toggle()
+            end
+        end
+    })
+end)
 
 run(function()
     local EAW
