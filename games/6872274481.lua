@@ -9472,7 +9472,7 @@ run(function()
                         end)
                     end
                 end)
-            else
+																																																																																																																									else
                 if retryThread then
                     task.cancel(retryThread)
                     retryThread = nil
@@ -9509,34 +9509,36 @@ run(function()
     local NoFall
     local NoFallMode
     local groundRemote
-    local lastSend = 0
+
+    task.spawn(function()
+        pcall(function()
+            local remoteName = (remotes.GroundHit and remotes.GroundHit ~= '') and remotes.GroundHit or 'GroundHit'
+            groundRemote = bedwars.Client:Get(remoteName).instance
+        end)
+    end)
 
     NoFall = vape.Categories.Blatant:CreateModule({
         Name = 'NoFall',
-        Tooltip = 'Prevents taking fall damage',
         Function = function(callback)
-            if callback then
-                if not groundRemote then
-                    pcall(function()
-                        local remoteName = (remotes.GroundHit and remotes.GroundHit ~= '') and remotes.GroundHit or 'GroundHit'
-                        groundRemote = bedwars.Client:Get(remoteName).instance
-                    end)
-                end
-                if not groundRemote then
-                    vape:CreateNotification('NoFall', 'GroundHit remote not found', 3, 'alert')
-                    NoFall:Toggle()
-                    return
-                end
+            if not callback then return end
 
-                if NoFallMode.Value == 'Gravity' then
-                    local offset = 0
-                    local castParams = RaycastParams.new()
-                    castParams.RespectCanCollide = true
-                    NoFall:Clean(runService.PreSimulation:Connect(function(delta)
-                        if not entitylib.isAlive then
-                            offset = 0
-                            return
-                        end
+            if not groundRemote then
+                pcall(function()
+                    local remoteName = (remotes.GroundHit and remotes.GroundHit ~= '') and remotes.GroundHit or 'GroundHit'
+                    groundRemote = bedwars.Client:Get(remoteName).instance
+                end)
+            end
+            if not groundRemote then
+                NoFall:Toggle()
+                return
+            end
+
+            if NoFallMode.Value == 'Gravity' then
+                local offset = 0
+                local castParams = RaycastParams.new()
+                castParams.RespectCanCollide = true
+                NoFall:Clean(runService.PreSimulation:Connect(function(delta)
+                    if entitylib.isAlive then
                         local root = entitylib.character.RootPart
                         if root.AssemblyLinearVelocity.Y < -85 then
                             castParams.FilterDescendantsInstances = {lplr.Character, gameCamera}
@@ -9551,35 +9553,32 @@ run(function()
                         else
                             offset = 0
                         end
-                    end))
-                else
-                    local peak = 0
-                    NoFall:Clean(runService.Heartbeat:Connect(function()
-                        if not entitylib.isAlive then
-                            peak = 0
-                            return
-                        end
+                    end
+                end))
+            else
+                local peak = 0
+                repeat
+                    if entitylib.isAlive then
                         local root = entitylib.character.RootPart
-                        local humanoid = entitylib.character.Humanoid
-                        if not root or not humanoid then return end
+                        peak = entitylib.character.Humanoid.FloorMaterial == Enum.Material.Air
+                            and math.min(peak, root.AssemblyLinearVelocity.Y)
+                            or 0
 
-                        peak = humanoid.FloorMaterial == Enum.Material.Air and math.min(peak, root.AssemblyLinearVelocity.Y) or 0
-
-                        if peak < -85 and tick() - lastSend >= 0.03 then
-                            lastSend = tick()
+                        if peak < -85 then
                             pcall(function()
-                                humanoid:ChangeState(Enum.HumanoidStateType.Freefall)
+                                entitylib.character.Humanoid:ChangeState(Enum.HumanoidStateType.Freefall)
                             end)
-                            task.spawn(function()
-                                pcall(function()
-                                    groundRemote:FireServer(workspace, Vector3.new(0, peak, 0), workspace:GetServerTimeNow() + 0.35)
-                                end)
+                            pcall(function()
+                                groundRemote:FireServer(workspace, Vector3.new(0, peak, 0), workspace:GetServerTimeNow() + 0.35)
                             end)
                         end
-                    end))
-                end
+                    end
+
+                    task.wait(0.03)
+                until not NoFall.Enabled
             end
-        end
+        end,
+        Tooltip = 'Prevents taking fall damage'
     })
 
     NoFallMode = NoFall:CreateDropdown({
@@ -9592,8 +9591,8 @@ run(function()
             end
         end
     })
-end)
-
+end)    
+																																																																																																																			end
 run(function()
     local EAW
 	local Methods 
