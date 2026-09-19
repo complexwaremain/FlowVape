@@ -9507,84 +9507,97 @@ end)
 
 run(function()
     local NoFall
-    local MinFall
-    local SlowDistance
-    local LandSpeed
-    local peakY
+    local NoFallMode
+    local Threshold
 
     NoFall = vape.Categories.Blatant:CreateModule({
         Name = 'NoFall',
-        Tooltip = 'Slows your fall near the ground on long drops',
+        Tooltip = 'Prevents taking fall damage',
         Function = function(callback)
             if not callback then return end
-            peakY = nil
 
-            local castParams = RaycastParams.new()
-            castParams.RespectCanCollide = true
-            castParams.FilterType = Enum.RaycastFilterType.Exclude
-
-            NoFall:Clean(runService.Heartbeat:Connect(function()
-                if not entitylib.isAlive then
-                    peakY = nil
-                    return
-                end
-                local fly = vape.Modules and vape.Modules.InfiniteFly
-                if fly and fly.Enabled then
-                    peakY = nil
-                    return
-                end
-
-                local root = entitylib.character.RootPart
-                local humanoid = entitylib.character.Humanoid
-                if not root or not humanoid then return end
-
-                if humanoid.FloorMaterial ~= Enum.Material.Air then
-                    peakY = nil
-                    return
-                end
-
-                if root.AssemblyLinearVelocity.Y > 0 then
-                    peakY = root.Position.Y
-                    return
-                end
-
-                peakY = math.max(peakY or root.Position.Y, root.Position.Y)
-                local fallDist = peakY - root.Position.Y
-                if fallDist < MinFall.Value then return end
-
-                castParams.FilterDescendantsInstances = {lplr.Character, gameCamera}
-                local hip = root.Size.Y / 2 + (entitylib.character.HipHeight or 2)
-                local hit = workspace:Raycast(root.Position, Vector3.new(0, -(hip + SlowDistance.Value), 0), castParams)
-                if hit then
-                    local vel = root.AssemblyLinearVelocity
-                    if vel.Y < -LandSpeed.Value then
-                        root.AssemblyLinearVelocity = Vector3.new(vel.X, -LandSpeed.Value, vel.Z)
+            if NoFallMode.Value == 'Gravity' then
+                local offset = 0
+                local castParams = RaycastParams.new()
+                castParams.RespectCanCollide = true
+                NoFall:Clean(runService.PreSimulation:Connect(function(delta)
+                    if entitylib.isAlive then
+                        local root = entitylib.character.RootPart
+                        if root.AssemblyLinearVelocity.Y < -85 then
+                            castParams.FilterDescendantsInstances = {lplr.Character, gameCamera}
+                            castParams.CollisionGroup = root.CollisionGroup
+                            local hip = root.Size.Y / 2 + entitylib.character.HipHeight
+                            local hit = workspace:Blockcast(root.CFrame, Vector3.new(3, 3, 3), Vector3.new(0, (offset * 0.1) - hip, 0), castParams)
+                            if not hit then
+                                root.AssemblyLinearVelocity = Vector3.new(root.AssemblyLinearVelocity.X, -86, root.AssemblyLinearVelocity.Z)
+                                root.CFrame += Vector3.new(0, offset * delta, 0)
+                                offset -= workspace.Gravity * delta
+                            end
+                        else
+                            offset = 0
+                        end
                     end
+                end))
+            else
+                local remoteName = (remotes.GroundHit and remotes.GroundHit ~= '') and remotes.GroundHit or 'GroundHit'
+                local groundRemote = select(2, pcall(function()
+                    return bedwars.Client:Get(remoteName).instance
+                end))
+                if not groundRemote then
+                    vape:CreateNotification('NoFall', 'GroundHit remote not found', 3, 'alert')
+                    NoFall:Toggle()
+                    return
                 end
-            end))
+
+                local castParams = RaycastParams.new()
+                castParams.RespectCanCollide = true
+                castParams.FilterType = Enum.RaycastFilterType.Exclude
+
+                local thread
+                thread = task.spawn(function()
+                    repeat
+                        if entitylib.isAlive then
+                            local root = entitylib.character.RootPart
+                            local humanoid = entitylib.character.Humanoid
+                            if humanoid.FloorMaterial == Enum.Material.Air and root.AssemblyLinearVelocity.Y < Threshold.Value then
+                                castParams.FilterDescendantsInstances = {lplr.Character, gameCamera}
+                                local hit = workspace:Raycast(root.Position, Vector3.new(0, -60, 0), castParams)
+                                local targetPart = hit and hit.Instance or workspace
+                                local targetPos = hit and hit.Position or root.Position
+
+                                pcall(function()
+                                    humanoid:ChangeState(Enum.HumanoidStateType.Freefall)
+                                end)
+                                pcall(function()
+                                    groundRemote:FireServer(targetPart, targetPos, workspace:GetServerTimeNow())
+                                end)
+                            end
+                        end
+                        task.wait(0.03)
+                    until not NoFall.Enabled
+                end)
+                NoFall:Clean(function()
+                    task.cancel(thread)
+                end)
+            end
         end
     })
 
-    MinFall = NoFall:CreateSlider({
-        Name = 'Min Fall',
-        Min = 1,
-        Max = 20,
-        Default = 4,
-        Suffix = 'studs'
+    Threshold = NoFall:CreateSlider({
+        Name = 'Threshold',
+        Min = -100,
+        Max = -20,
+        Default = -45
     })
-    SlowDistance = NoFall:CreateSlider({
-        Name = 'Slow Distance',
-        Min = 1,
-        Max = 8,
-        Default = 2,
-        Suffix = 'studs'
-    })
-    LandSpeed = NoFall:CreateSlider({
-        Name = 'Land Speed',
-        Min = 5,
-        Max = 60,
-        Default = 25,
-        Suffix = 'studs'
+    NoFallMode = NoFall:CreateDropdown({
+        Name = 'Mode',
+        List = {'Packet', 'Gravity'},
+        Function = function()
+            if NoFall.Enabled then
+                NoFall:Toggle()
+                NoFall:Toggle()
+            end
+        end
     })
 end)
 
