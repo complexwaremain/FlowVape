@@ -12155,63 +12155,7 @@ run(function()
         end
     end)
 end)
-
- run(function()
-    local InfiniteMomentum
-    local MomentumMax
-    local originalUpdateMomentum
-    local hookedUpdateMomentum
-
-    InfiniteMomentum = vape.Categories.Blatant:CreateModule({
-        Name = 'InfiniteMomentum',
-        Tooltip = 'Keeps your momentum maxed forever',
-        Function = function(callback)
-            local controller = bedwars.GlacialSkaterController
-            if callback then
-                if not controller or type(controller.updateMomentum) ~= 'function' then
-                    vape:CreateNotification('InfiniteMomentum', 'Glacial Skater controller not found', 3, 'alert')
-                    InfiniteMomentum:Toggle()
-                    return
-                end
-                originalUpdateMomentum = controller.updateMomentum
-                hookedUpdateMomentum = function(self, ...)
-                    local ok, err = pcall(originalUpdateMomentum, self, ...)
-                    if InfiniteMomentum.Enabled and self then
-                        self.momentum = MomentumMax.Value
-                        self.lastMomentumReport = workspace:GetServerTimeNow()
-                    end
-                    if not ok then
-                        error(err)
-                    end
-                end
-                controller.updateMomentum = hookedUpdateMomentum
-            else
-                if controller and originalUpdateMomentum and controller.updateMomentum == hookedUpdateMomentum then
-                    controller.updateMomentum = originalUpdateMomentum
-                end
-                originalUpdateMomentum = nil
-                hookedUpdateMomentum = nil
-            end
-        end
-    })
-
-    MomentumMax = InfiniteMomentum:CreateSlider({
-        Name = 'Momentum',
-        Min = 10,
-        Max = 1000,
-        Default = 100
-    })
-
-    vape:Clean(function()
-        local controller = bedwars and bedwars.GlacialSkaterController
-        if controller and originalUpdateMomentum and controller.updateMomentum == hookedUpdateMomentum then
-            controller.updateMomentum = originalUpdateMomentum
-        end
-        originalUpdateMomentum = nil
-        hookedUpdateMomentum = nil
-    end)
-end)
-																																																																										
+																																																																								
 run(function()
 	local MemoryFixer
 	local Sync
