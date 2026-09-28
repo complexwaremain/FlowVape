@@ -1,4 +1,5 @@
 --This watermark is used to delete the file if its cached, remove it to make the file persist after vape updates.
+--This watermark is used to delete the file if its cached, remove it to make the file persist after vape updates.
 local run = function(func)
 	func()
 end
@@ -2827,138 +2828,58 @@ run(function()
 end)
 	
 run(function()
-	local NoFall
-	local savedUpvalue = nil
-	local knitStart = nil
-	local disabledConnections = {}
-	local hookedFunctions = {}
+    local NoFall
+    local groundHitConnection
+    local groundHitSent = false
 
-	local function findKnitStart()
-		pcall(function()
-			for name, controller in Knit.Controllers do
-				if type(name) == 'string' and (name:lower():find('fall') or name:lower():find('falldamage')) then
-					if controller.KnitStart then
-						knitStart = controller.KnitStart
-						break
-					end
-				end
-			end
-		end)
-		if not knitStart then
-			pcall(function()
-				local mod = require(lplr.PlayerScripts.TS.controllers.game.combat['fall-damage-controller'])
-				knitStart = mod and (mod.KnitStart or mod.default and mod.default.KnitStart)
-			end)
-		end
-	end
+    NoFall = vape.Categories.Blatant:CreateModule({
+        Name = 'NoFall',
+        Function = function(callback)
+            if not callback then
+                if groundHitConnection then
+                    pcall(function() groundHitConnection:Disconnect() end)
+                    groundHitConnection = nil
+                end
+                groundHitSent = false
+                return
+            end
 
-	local function nukeUpvalues()
-		if not knitStart then return end
-		pcall(function()
-			local i = 1
-			while true do
-				local name, val = debug.getupvalue(knitStart, i)
-				if name == nil then break end
-				if type(val) == 'function' then
-					if not savedUpvalue then
-						savedUpvalue = {index = i, value = val}
-					end
-					debug.setupvalue(knitStart, i, function() end)
-				end
-				i += 1
-			end
-		end)
-	end
+            if groundHitConnection then return end
 
-	local function nukeRemote()
-		local oldGet = bedwars.Client.Get
-		table.insert(hookedFunctions, {obj = bedwars.Client, key = 'Get', value = oldGet})
-		bedwars.Client.Get = function(self, remoteName)
-			local result = oldGet(self, remoteName)
-			if remoteName == remotes.GroundHit then
-				return {
-					instance = result and result.instance,
-					SendToServer = function() end,
-					FireServer = function() end,
-				}
-			end
-			return result
-		end
-	end
+            groundHitConnection = runService.PreSimulation:Connect(function()
+                if not entitylib.isAlive then
+                    groundHitSent = false
+                    return
+                end
 
-	local function nukeConnections()
-		if not getconnections then return end
-		pcall(function()
-			local hum = entitylib.isAlive and entitylib.character and entitylib.character.Humanoid
-			if not hum then return end
-			for _, signal in {hum.HealthChanged, hum.Touched} do
-				for _, conn in getconnections(signal) do
-					local ok, src = pcall(function() return tostring(conn.Function) end)
-					if ok and src and (src:lower():find('fall') or src:lower():find('damage')) then
-						conn:Disable()
-						table.insert(disabledConnections, conn)
-					end
-				end
-			end
-		end)
-	end
+                local character = entitylib.character
+                local root = character.RootPart
+                local humanoid = character.Humanoid
+                if not root or not humanoid then return end
 
-	local function restoreAll()
-		pcall(function()
-			if savedUpvalue and knitStart then
-				debug.setupvalue(knitStart, savedUpvalue.index, savedUpvalue.value)
-				savedUpvalue = nil
-			end
-		end)
-		for _, hooked in hookedFunctions do
-			pcall(function() hooked.obj[hooked.key] = hooked.value end)
-		end
-		table.clear(hookedFunctions)
-		for _, conn in disabledConnections do
-			pcall(function() conn:Enable() end)
-		end
-		table.clear(disabledConnections)
-	end
+                if humanoid.FloorMaterial ~= Enum.Material.Air then
+                    groundHitSent = false
+                    return
+                end
 
-	task.defer(findKnitStart)
-
-	NoFall = vape.Categories.Blatant:CreateModule({
-		Name = 'NoFall',
-		Tooltip = 'Removes fall damage completely.',
-		Function = function(enabled)
-			if enabled then
-				if not knitStart then findKnitStart() end
-				nukeUpvalues()
-				nukeRemote()
-				nukeConnections()
-
-				NoFall:Clean(runService.Heartbeat:Connect(function()
-					if not entitylib.isAlive then return end
-					local root = entitylib.character and entitylib.character.RootPart
-					if not root then return end
-					if root.AssemblyLinearVelocity.Y < -85 then
-						root.AssemblyLinearVelocity = Vector3.new(
-							root.AssemblyLinearVelocity.X,
-							-85,
-							root.AssemblyLinearVelocity.Z
-						)
-					end
-				end))
-
-				NoFall:Clean(entitylib.Events.LocalAdded:Connect(function()
-					task.delay(0.2, function()
-						if NoFall.Enabled then
-							table.clear(disabledConnections)
-							nukeUpvalues()
-							nukeConnections()
-						end
-					end)
-				end))
-			else
-				restoreAll()
-			end
-		end,
-	})
+                if not groundHitSent and root.AssemblyLinearVelocity.Y < -35 then
+                    groundHitSent = true
+                    pcall(function()
+                        local remote = bedwars.Client:Get('GroundHit')
+                        remote:SendToServer(
+                            nil,
+                            Vector3.new(0, 0, 0),
+                            workspace:GetServerTimeNow()
+                        )
+                    end)
+                elseif root.AssemblyLinearVelocity.Y > -10 then
+                    groundHitSent = false
+                end
+            end)
+            NoFall:Clean(groundHitConnection)
+        end,
+        Tooltip = 'no fall damage.'
+    })
 end)
 	
 run(function()
@@ -11362,7 +11283,7 @@ run(function()
             end
         end,
         ExtraText = function()
-            return 'flowvape'
+            return 'bedwars developers'
         end,
         Tooltip = 'Speeds you up. Pick whichever method works best for you.'
     })
@@ -11394,98 +11315,4 @@ run(function()
         Darker = true
     })
 end)
-																																																																								
-run(function()
-	local MemoryFixer
-	local Sync
-	local Interval
-	local Notify
-	local signals = {'Heartbeat', 'PostSimulation', 'PreAnimation', 'PreRender', 'PreSimulation', 'RenderStepped', 'Stepped'}
-	
-	local function clean()
-		if not getconnections or not getfunctionhash or not isexecutorclosure then
-			return 0
-		end
-	
-		local removed, seen = 0, {}
-		for _, v in signals do
-			for _, v2 in getconnections(runService[v]) do
-				if v2.Function and not v2.ForeignState and isexecutorclosure(v2.Function) then
-					local hash = v..getfunctionhash(v2.Function)
-					if seen[hash] then
-						v2:Disconnect()
-						removed += 1
-					else
-						seen[hash] = true
-					end
-				end
-			end
-		end
-	
-		if Sync.Enabled then
-			for _, v in bedwars.SyncEvents do
-				if typeof(v) == 'table' and typeof(v.entries) == 'table' then
-					table.clear(seen)
-					for i2, v2 in v.entries do
-						local callback = v2.callbackInfo and v2.callbackInfo.callback
-						if callback and isexecutorclosure(callback) then
-							local hash = getfunctionhash(callback)
-							if seen[hash] then
-								v.entries[i2] = nil
-								v.isSorted = false
-								removed += 1
-							else
-								seen[hash] = true
-							end
-						end
-					end
-				end
-			end
-		end
-	
-		return removed
-	end
-	
-	MemoryFixer = vape.Categories.Utility:CreateModule({
-		Name = 'MemoryFixer',
-		Function = function(callback)
-			if callback then
-				task.spawn(function()
-					repeat
-						local removed = clean()
-						if Notify.Enabled and removed > 0 then
-							notif('MemoryFixer', `Dropped {removed} leftover connection{removed == 1 and '' or 's'}`, 5)
-						end
-						task.wait(Interval.Value)
-					until not MemoryFixer.Enabled
-				end)
-			end
-		end,
-		Tooltip = 'Drops the duplicate loops and listeners an older injection left connected'
-	})
-	
-	Sync = MemoryFixer:CreateToggle({
-		Name = 'Sync events',
-		Default = true,
-		Tooltip = 'Also prunes duplicate bedwars sync event listeners, the ones that survive a reinject'
-	})
-	Interval = MemoryFixer:CreateSlider({
-		Name = 'Interval',
-		Min = 5,
-		Max = 300,
-		Default = 30,
-		Suffix = 'seconds'
-	})
-	Notify = MemoryFixer:CreateToggle({
-		Name = 'Notify',
-		Default = true,
-		Tooltip = 'Tells you how many it dropped'
-	})
-	MemoryFixer:CreateButton({
-		Name = 'Clean now',
-		Function = function()
-			local removed = clean()
-			notif('MemoryFixer', `Dropped {removed} leftover connection{removed == 1 and '' or 's'}`, 5)
-		end
-	})
-end)
+
