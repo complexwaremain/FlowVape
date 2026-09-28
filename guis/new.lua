@@ -132,12 +132,13 @@ local isfile = isfile or function(file)
 end
 
 local getfontsize = function(text, size, font)
-	fontsize.Text = text
-	fontsize.Size = size
-	if typeof(font) == 'Font' then
-		fontsize.Font = font
-	end
-	return textService:GetTextBoundsAsync(fontsize)
+    if not text then return Vector2.new(0, 0) end
+    fontsize.Text = text
+    fontsize.Size = size
+    if typeof(font) == 'Font' then
+        fontsize.Font = font
+    end
+    return textService:GetTextBoundsAsync(fontsize)
 end
 
 local function addBlur(parent, notif)
@@ -401,8 +402,9 @@ local function randomString()
 end
 
 local function removeTags(str)
-	str = str:gsub('<br%s*/>', '\n')
-	return str:gsub('<[^<>]->', '')
+    if not str then return '' end
+    str = str:gsub('<br%s*/>', '\n')
+    return str:gsub('<[^<>]->', '')
 end
 
 do
@@ -2857,7 +2859,7 @@ function mainapi:CreateGUI()
 			toggle.Size = UDim2.new(1, 0, 0, 40)
 			toggle.BackgroundTransparency = 1
 			toggle.AutoButtonColor = false
-			toggle.Text = string.rep(' ', 33 * scale.Scale)..togglesettings.Name
+			toggle.Text = string.rep(' ', math.floor(33 * scale.Scale))..togglesettings.Name
 			toggle.TextXAlignment = Enum.TextXAlignment.Left
 			toggle.TextColor3 = color.Dark(uipallet.Text, 0.16)
 			toggle.TextSize = 14
@@ -2900,9 +2902,9 @@ function mainapi:CreateGUI()
 				togglesettings.Function(self.Enabled)
 			end
 
-			scale:GetPropertyChangedSignal('Scale'):Connect(function()
-				toggle.Text = string.rep(' ', 33 * scale.Scale)..togglesettings.Name
-			end)
+            scale:GetPropertyChangedSignal('Scale'):Connect(function()
+                toggle.Text = string.rep(' ', math.floor(33 * scale.Scale))..togglesettings.Name
+            end)
 			toggle.MouseEnter:Connect(function()
 				hovered = true
 				if not toggleapi.Enabled then
@@ -3621,7 +3623,7 @@ function mainapi:CreateGUI()
 		window.Size = UDim2.fromOffset(220, 42 + windowlist.AbsoluteContentSize.Y / scale.Scale)
 		for _, v in categoryapi.Buttons do
 			if v.Icon then
-				v.Object.Text = string.rep(' ', 36 * scale.Scale)..v.Name
+                v.Object.Text = string.rep(' ', math.floor(36 * scale.Scale))..v.Name
 			end
 		end
 	end)
