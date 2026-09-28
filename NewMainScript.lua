@@ -277,17 +277,17 @@ local SHARED_FILES = {
 }
 
 local PC_PROFILES = {
-    'legit6872274481.txt',
-    'blatant6872274481.txt',
-    'legit6872265039.txt',
-    'blatant6872265039.txt',
+    {remote = 'Legit6872274481.txt', saveAs = 'Legit6872274481.txt'},
+    {remote = 'Blatant6872274481.txt', saveAs = 'Blatant6872274481.txt'},
+    {remote = 'Legit6872265039.txt', saveAs = 'Legit6872265039.txt'},
+    {remote = 'Blatant6872265039.txt', saveAs = 'Blatant6872265039.txt'},
 }
 
 local MOB_PROFILES = {
-    'legitMob6872274481.txt',
-    'blatantMob6872274481.txt',
-    'legitMob6872265039.txt',
-    'blatantMob6872265039.txt',
+    {remote = 'legitMob6872274481.txt', saveAs = 'Legit6872274481.txt'},
+    {remote = 'blatantMob6872274481.txt', saveAs = 'Blatant6872274481.txt'},
+    {remote = 'legitMob6872265039.txt', saveAs = 'Legit6872265039.txt'},
+    {remote = 'blatantMob6872265039.txt', saveAs = 'Blatant6872265039.txt'},
 }
 
 local function downloadFile(url, dest)
@@ -307,8 +307,8 @@ local function downloadProfiles(isMobile)
     end
 
     for i = 1, #profileList do
-        local filename = profileList[i]
-        downloadFile(BASE..remoteFolder..'/'..filename, 'FlowVape/profiles/'..filename)
+        local fileData = profileList[i]
+        downloadFile(BASE..remoteFolder..'/'..fileData.remote, 'FlowVape/profiles/'..fileData.saveAs)
     end
 end
 
@@ -341,21 +341,26 @@ local function downloadAssets()
 
     if decOk and type(decoded) == 'table' then
         for _, f in ipairs(decoded) do
-            if f.type == 'file' and f.name and f.download_url then
-                table.insert(files, {name = f.name, url = f.download_url})
+            if f.type == 'file' and f.name then
+                table.insert(files, f.name)
             end
         end
     else
-        for name, url in response:gmatch('"name":"([^"]+)".-?"download_url":"([^"]+)"') do
-            if url:match('raw%.githubusercontent') or url:match('github%.com') then
-                table.insert(files, {name = name, url = url})
+        for name in response:gmatch('"name"%s*:%s*"([^"]+)"') do
+            if name:match('%.') then
+                table.insert(files, name)
             end
         end
     end
 
-    for _, f in ipairs(files) do
-        downloadFile(f.url, 'FlowVape/assets/new/'..f.name)
+    for _, name in ipairs(files) do
+        downloadFile(BASE..'assets/new/'..name, 'FlowVape/assets/new/'..name)
     end
+end
+
+local function downloadGuis()
+    downloadFile(BASE..'guis/new.lua', 'FlowVape/guis/new.lua')
+    downloadFile(BASE..'guis/new.lua', 'FlowVape/guis/customgui.lua')
 end
 
 local function load(isMobile)
@@ -383,10 +388,15 @@ local function load(isMobile)
     task.wait(0.1)
     downloadAssets()
 
+    statusLabel.Text = 'Downloading guis...'
+    task.wait(0.1)
+    downloadGuis()
+
     statusLabel.Text = 'Loading FlowVape...'
     task.wait(0.2)
 
     shared.FlowVapeIsMobile = isMobile
+    pcall(writefile, 'FlowVape/profiles/device.txt', isMobile and 'mobile' or 'pc')
 
     local maincontent = game:HttpGet(BASE..'main.lua')
     pcall(writefile, 'FlowVape/main.lua', maincontent)
@@ -401,10 +411,6 @@ local function load(isMobile)
         task.wait(0.5)
         rainbowConn:Disconnect()
         sg:Destroy()
-        task.wait(0.3)
-        if shared.vape then
-            shared.vape:CreateNotification('FlowVape', 'Loaded - thanks for using FlowVape!', 2)
-        end
     else
         statusLabel.Text = 'Error: '..tostring(err):sub(1, 50)
         statusLabel.TextColor3 = Color3.fromRGB(248, 113, 113)
