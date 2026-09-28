@@ -27,4 +27,4 @@ task.wait(1)
 
 print('[FlowVape] Files cleared. Launching installer...')
 
-loadstring(game:HttpGet('https://raw.githubusercontent.com/complexwaremain/FlowVape/main/newmainscript.lua', true))()
+loadstring(game:HttpGet('https://raw.githubusercontent.com/complexwaremain/FlowVape/main/NewMainScript.lua'))()
