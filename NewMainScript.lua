@@ -1,3 +1,26 @@
+-- Bypass UI if already installed
+local isfile = isfile or function(file)
+    local suc, res = pcall(function()
+        return readfile(file)
+    end)
+    return suc and res ~= nil and res ~= ''
+end
+
+if isfile('FlowVape/main.lua') then
+    local isMob = false
+    if isfile('FlowVape/profiles/device.txt') then
+        isMob = readfile('FlowVape/profiles/device.txt') == 'mobile'
+    else
+        local inputService = game:GetService('UserInputService')
+        isMob = inputService.TouchEnabled and not inputService.MouseEnabled
+        pcall(writefile, 'FlowVape/profiles/device.txt', isMob and 'mobile' or 'pc')
+    end
+    shared.FlowVapeIsMobile = isMob
+    loadstring(readfile('FlowVape/main.lua'), 'main')()
+    return
+end
+
+-- Installer UI
 local players = game:GetService('Players')
 local inputService = game:GetService('UserInputService')
 local runService = game:GetService('RunService')
@@ -6,12 +29,6 @@ local httpService = game:GetService('HttpService')
 local lplr = players.LocalPlayer
 local playerGui = lplr:WaitForChild('PlayerGui')
 
-local isfile = isfile or function(file)
-    local suc, res = pcall(function()
-        return readfile(file)
-    end)
-    return suc and res ~= nil and res ~= ''
-end
 local delfile = delfile or function(file)
     writefile(file, '')
 end
@@ -24,6 +41,17 @@ sg.ResetOnSpawn = false
 sg.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 sg.IgnoreGuiInset = true
 sg.Parent = playerGui
+
+-- Auto-Scale based on display resolution
+local uiScale = Instance.new('UIScale')
+uiScale.Parent = sg
+local camera = workspace.CurrentCamera
+local function updateScale()
+    local viewportSize = camera.ViewportSize
+    uiScale.Scale = math.clamp(viewportSize.Y / 800, 0.6, 1.5)
+end
+updateScale()
+camera:GetPropertyChangedSignal('ViewportSize'):Connect(updateScale)
 
 local card = Instance.new('Frame')
 card.Name = 'Card'
