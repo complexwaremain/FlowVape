@@ -145,6 +145,12 @@ local function downloadGames()
     end
 end
 
+local function downloadGuis()
+    -- Download new.lua and save it as both new.lua and customgui.lua
+    dlFile(BASE..'guis/new.lua', 'FlowVape/guis/new.lua')
+    dlFile(BASE..'guis/new.lua', 'FlowVape/guis/customgui.lua')
+end
+
 local function downloadAssets()
     if not isfolder('FlowVape/assets/new') then
         makefolder('FlowVape/assets/new')
@@ -180,6 +186,9 @@ local function runLoad(isMobile, statusLabel)
     if statusLabel then statusLabel.Text = 'Downloading game scripts...' end
     task.wait(0.1)
     downloadGames()
+    if statusLabel then statusLabel.Text = 'Downloading guis...' end
+    task.wait(0.1)
+    downloadGuis()
     if statusLabel then statusLabel.Text = 'Downloading assets...' end
     task.wait(0.1)
     downloadAssets()
