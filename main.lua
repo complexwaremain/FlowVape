@@ -171,7 +171,6 @@ if not isfolder('FlowVape/assets/'..gui) then
     makefolder('FlowVape/assets/'..gui)
 end
 
--- Read the GUI file locally instead of re-downloading it
 local guiPath = 'FlowVape/guis/'..gui..'.lua'
 local guicontent
 if isfile(guiPath) then
@@ -198,7 +197,6 @@ vape = result
 shared.vape = vape
 
 if not shared.VapeIndependent then
-    -- Safely load universal.lua
     local suc, universalcontent = pcall(function()
         return game:HttpGet('https://raw.githubusercontent.com/complexwaremain/FlowVape/main/games/universal.lua')
     end)
@@ -209,28 +207,42 @@ if not shared.VapeIndependent then
         end
     end
 
-    -- Safely load game scripts
-    local gameFile = 'FlowVape/games/'..game.PlaceId..'.lua'
+    local placeId = tostring(game.PlaceId)
+    -- Redirect 6872265039 to 6872274481 so you only need one file
+    if placeId == '6872265039' then
+        placeId = '6872274481'
+    end
+
+    local gameFile = 'FlowVape/games/'..placeId..'.lua'
+    local scriptContent
     if isfile(gameFile) then
-        local scriptContent = readfile(gameFile)
-        local func = loadstring(scriptContent, tostring(game.PlaceId))
-        if func then
-            pcall(func)
-        end
+        scriptContent = readfile(gameFile)
     else
         if not shared.VapeDeveloper then
             local suc, res = pcall(function()
-                return game:HttpGet('https://raw.githubusercontent.com/complexwaremain/FlowVape/main/games/'..game.PlaceId..'.lua', true)
+                return game:HttpGet('https://raw.githubusercontent.com/complexwaremain/FlowVape/main/games/'..placeId..'.lua', true)
             end)
             if suc and res and res ~= '404: Not Found' then
                 writefile(gameFile, res)
-                local func = loadstring(res, tostring(game.PlaceId))
-                if func then
-                    pcall(func)
-                end
+                scriptContent = res
             end
         end
     end
+
+    if scriptContent then
+        local func, err = loadstring(scriptContent, placeId)
+        if func then
+            local ok, runErr = pcall(func)
+            if not ok then
+                warn('[FlowVape] Game script failed to run: '..tostring(runErr))
+                if vape then vape:CreateNotification('FlowVape', 'Game script error: '..tostring(runErr):sub(1, 50), 10, 'alert') end
+            end
+        else
+            warn('[FlowVape] Game script syntax error: '..tostring(err))
+            if vape then vape:CreateNotification('FlowVape', 'Game script syntax error: '..tostring(err):sub(1, 50), 10, 'alert') end
+        end
+    end
+    
     finishLoading()
 else
     vape.Init = finishLoading
