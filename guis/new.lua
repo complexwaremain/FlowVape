@@ -51,11 +51,11 @@ local tween = {
 	tweenstwo = {}
 }
 local uipallet = {
-	Main = Color3.fromRGB(18, 18, 24),
-	Text = Color3.fromRGB(235, 245, 255),
+	Main = Color3.fromRGB(26, 25, 26),
+	Text = Color3.fromRGB(200, 200, 200),
 	Font = Font.fromEnum(Enum.Font.Arial),
 	FontSemiBold = Font.fromEnum(Enum.Font.Arial, Enum.FontWeight.SemiBold),
-	Tween = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+	Tween = TweenInfo.new(0.16, Enum.EasingStyle.Linear)
 }
 
 local getcustomassets = {
@@ -132,13 +132,12 @@ local isfile = isfile or function(file)
 end
 
 local getfontsize = function(text, size, font)
-    if not text then return Vector2.new(0, 0) end
-    fontsize.Text = text
-    fontsize.Size = size
-    if typeof(font) == 'Font' then
-        fontsize.Font = font
-    end
-    return textService:GetTextBoundsAsync(fontsize)
+	fontsize.Text = text
+	fontsize.Size = size
+	if typeof(font) == 'Font' then
+		fontsize.Font = font
+	end
+	return textService:GetTextBoundsAsync(fontsize)
 end
 
 local function addBlur(parent, notif)
@@ -159,6 +158,7 @@ local function addCorner(parent, radius)
 	local corner = Instance.new('UICorner')
 	corner.CornerRadius = radius or UDim.new(0, 5)
 	corner.Parent = parent
+
 	return corner
 end
 
@@ -402,9 +402,8 @@ local function randomString()
 end
 
 local function removeTags(str)
-    if not str then return '' end
-    str = str:gsub('<br%s*/>', '\n')
-    return str:gsub('<[^<>]->', '')
+	str = str:gsub('<br%s*/>', '\n')
+	return str:gsub('<[^<>]->', '')
 end
 
 do
@@ -1403,14 +1402,8 @@ components = {
 		window.Text = ''
 		window.Parent = clickgui
 		optionapi.Window = window
-		window.BackgroundTransparency = 0.1
 		addBlur(window)
 		addCorner(window)
-		local stroke = Instance.new('UIStroke')
-        stroke.Color = Color3.fromRGB(0, 240, 255)
-        stroke.Thickness = 1
-        stroke.Transparency = 0.5
-        stroke.Parent = window
 		local icon = Instance.new('ImageLabel')
 		icon.Name = 'Icon'
 		icon.Size = UDim2.fromOffset(18, 12)
@@ -2576,11 +2569,6 @@ function mainapi:CreateGUI()
 	settingsversion.FontFace = uipallet.Font
 	settingsversion.Parent = settingspane
 	addCorner(settingspane)
-	local stroke = Instance.new('UIStroke')
-    stroke.Color = Color3.fromRGB(0, 240, 255)
-    stroke.Thickness = 1
-    stroke.Transparency = 0.5
-    stroke.Parent = settingspane
 	local settingschildren = Instance.new('Frame')
 	settingschildren.Name = 'Children'
 	settingschildren.Size = UDim2.new(1, 0, 1, -57)
@@ -2859,7 +2847,7 @@ function mainapi:CreateGUI()
 			toggle.Size = UDim2.new(1, 0, 0, 40)
 			toggle.BackgroundTransparency = 1
 			toggle.AutoButtonColor = false
-			toggle.Text = string.rep(' ', math.floor(33 * scale.Scale))..togglesettings.Name
+			toggle.Text = string.rep(' ', 33 * scale.Scale)..togglesettings.Name
 			toggle.TextXAlignment = Enum.TextXAlignment.Left
 			toggle.TextColor3 = color.Dark(uipallet.Text, 0.16)
 			toggle.TextSize = 14
@@ -2902,9 +2890,9 @@ function mainapi:CreateGUI()
 				togglesettings.Function(self.Enabled)
 			end
 
-            scale:GetPropertyChangedSignal('Scale'):Connect(function()
-                toggle.Text = string.rep(' ', math.floor(33 * scale.Scale))..togglesettings.Name
-            end)
+			scale:GetPropertyChangedSignal('Scale'):Connect(function()
+				toggle.Text = string.rep(' ', 33 * scale.Scale)..togglesettings.Name
+			end)
 			toggle.MouseEnter:Connect(function()
 				hovered = true
 				if not toggleapi.Enabled then
@@ -3623,7 +3611,7 @@ function mainapi:CreateGUI()
 		window.Size = UDim2.fromOffset(220, 42 + windowlist.AbsoluteContentSize.Y / scale.Scale)
 		for _, v in categoryapi.Buttons do
 			if v.Icon then
-                v.Object.Text = string.rep(' ', math.floor(36 * scale.Scale))..v.Name
+				v.Object.Text = string.rep(' ', 36 * scale.Scale)..v.Name
 			end
 		end
 	end)
