@@ -655,10 +655,6 @@ local function safeGetProto(func, index)
     end
     return nil
 end
-        --warn("function:", func, "index:", index,", WM - proto") 
-        return nil
-    end
-end
 
 run(function()
 	local KnitInit, Knit
