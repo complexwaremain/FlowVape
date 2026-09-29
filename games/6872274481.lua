@@ -659,6 +659,7 @@ end
         return nil
     end
 end
+
 run(function()
 	local KnitInit, Knit
 	repeat
@@ -8464,7 +8465,6 @@ run(function()
 		Default = 0.05
 	})
 end)
-
 
 run(function()
 	local NightmareEmote
