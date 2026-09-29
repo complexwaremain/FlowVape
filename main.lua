@@ -8,8 +8,9 @@ if identifyexecutor then
 end
 
 local vape
+local oldLoadstring = loadstring
 local loadstring = function(...)
-    local res, err = loadstring(...)
+    local res, err = oldLoadstring(...)
     if err and vape then
         vape:CreateNotification('Vape', 'Failed to load : '..err, 30, 'alert')
     end
@@ -33,14 +34,10 @@ local ALL_PROFILES = {
     ['6872274481'] = {
         {Name = 'Legit',   File = 'Legit6872274481'},
         {Name = 'Blatant', File = 'Blatant6872274481'},
-        {Name = 'LegitMob',   File = 'LegitMob6872274481'},
-        {Name = 'BlatantMob', File = 'BlatantMob6872274481'},
     },
     ['6872265039'] = {
         {Name = 'Legit',   File = 'Legit6872265039'},
         {Name = 'Blatant', File = 'Blatant6872265039'},
-        {Name = 'LegitMob',   File = 'LegitMob6872265039'},
-        {Name = 'BlatantMob', File = 'BlatantMob6872265039'},
     },
 }
 
@@ -61,20 +58,17 @@ local function injectProfiles()
     for i = 1, #profiles do
         local entry = profiles[i]
         if entry and entry.Name and type(entry.Name) == 'string' then
-            local isMobProfile = entry.Name:find('Mob') ~= nil
-            if (isMobile and isMobProfile) or (not isMobile and not isMobProfile) then
-                local alreadyExists = false
-                for j = 1, #vape.Profiles do
-                    local existing = vape.Profiles[j]
-                    local existingName = type(existing) == 'table' and existing.Name or tostring(existing)
-                    if existingName == entry.Name then
-                        alreadyExists = true
-                        break
-                    end
+            local alreadyExists = false
+            for j = 1, #vape.Profiles do
+                local existing = vape.Profiles[j]
+                local existingName = type(existing) == 'table' and existing.Name or tostring(existing)
+                if existingName == entry.Name then
+                    alreadyExists = true
+                    break
                 end
-                if not alreadyExists then
-                    table.insert(vape.Profiles, {Name = entry.Name, File = entry.File, Bind = {}})
-                end
+            end
+            if not alreadyExists then
+                table.insert(vape.Profiles, {Name = entry.Name, File = entry.File, Bind = {}})
             end
         end
     end
@@ -177,7 +171,21 @@ if not isfolder('FlowVape/assets/'..gui) then
     makefolder('FlowVape/assets/'..gui)
 end
 
-local guicontent = game:HttpGet('https://raw.githubusercontent.com/complexwaremain/FlowVape/main/guis/'..gui..'.lua')
+-- Read the GUI file locally instead of re-downloading it
+local guiPath = 'FlowVape/guis/'..gui..'.lua'
+local guicontent
+if isfile(guiPath) then
+    guicontent = readfile(guiPath)
+else
+    local suc, res = pcall(function()
+        return game:HttpGet('https://raw.githubusercontent.com/complexwaremain/FlowVape/main/guis/'..gui..'.lua')
+    end)
+    if suc and res then
+        guicontent = res
+        pcall(writefile, guiPath, res)
+    end
+end
+
 local guiload, guierr = loadstring(guicontent, 'gui')
 if not guiload then
     error('GUI syntax error: '..tostring(guierr))
@@ -190,19 +198,36 @@ vape = result
 shared.vape = vape
 
 if not shared.VapeIndependent then
-    local universalcontent = game:HttpGet('https://raw.githubusercontent.com/complexwaremain/FlowVape/main/games/universal.lua')
-    loadstring(universalcontent, 'universal')()
+    -- Safely load universal.lua
+    local suc, universalcontent = pcall(function()
+        return game:HttpGet('https://raw.githubusercontent.com/complexwaremain/FlowVape/main/games/universal.lua')
+    end)
+    if suc and universalcontent and universalcontent ~= '404: Not Found' then
+        local uniFunc = loadstring(universalcontent, 'universal')
+        if uniFunc then
+            pcall(uniFunc)
+        end
+    end
 
-    if isfile('FlowVape/games/'..game.PlaceId..'.lua') then
-        loadstring(readfile('FlowVape/games/'..game.PlaceId..'.lua'), tostring(game.PlaceId))(...)
+    -- Safely load game scripts
+    local gameFile = 'FlowVape/games/'..game.PlaceId..'.lua'
+    if isfile(gameFile) then
+        local scriptContent = readfile(gameFile)
+        local func = loadstring(scriptContent, tostring(game.PlaceId))
+        if func then
+            pcall(func)
+        end
     else
         if not shared.VapeDeveloper then
             local suc, res = pcall(function()
                 return game:HttpGet('https://raw.githubusercontent.com/complexwaremain/FlowVape/main/games/'..game.PlaceId..'.lua', true)
             end)
-            if suc and res ~= '404: Not Found' then
-                writefile('FlowVape/games/'..game.PlaceId..'.lua', res)
-                loadstring(res, tostring(game.PlaceId))(...)
+            if suc and res and res ~= '404: Not Found' then
+                writefile(gameFile, res)
+                local func = loadstring(res, tostring(game.PlaceId))
+                if func then
+                    pcall(func)
+                end
             end
         end
     end
